@@ -173,7 +173,7 @@ automation:
 ```
 
 The blueprint `blueprints/automation/e_vaskeri/notify_cycle_finished.yaml` does the same with
-inputs for machine type and device filters, notify action, title and message template.
+inputs for machine type and device filters, only-my-cycles, notify action, title and message template.
 
 ## Dashboard card
 

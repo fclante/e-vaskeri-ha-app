@@ -38,6 +38,14 @@ blueprint:
               model: Dryer
             - integration: e_vaskeri
               model: Mangle
+    only_mine:
+      name: Only my cycles
+      description: >
+        Only notify when the cycle was paid from your own account (matched against
+        your statement).
+      default: false
+      selector:
+        boolean:
     notify_service:
       name: Notify action
       description: >
@@ -66,6 +74,7 @@ max_exceeded: silent
 variables:
   machine_types: !input machine_types
   machines: !input machines
+  only_mine: !input only_mine
   notify_service: !input notify_service
   title: !input title
   name: "{{ trigger.event.data.name }}"
@@ -83,6 +92,8 @@ conditions:
     value_template: "{{ type in machine_types }}"
   - condition: template
     value_template: "{{ not machines or trigger.event.data.device_id in machines }}"
+  - condition: template
+    value_template: "{{ not only_mine or trigger.event.data.mine is true }}"
 
 actions:
   - action: "{{ notify_service }}"

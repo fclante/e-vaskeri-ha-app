@@ -23,12 +23,24 @@ internet unless you have secured it appropriately.
 
 ## Installation
 
-### HACS custom repository
+### Home Assistant 2026.11 and newer: Marketplace
 
-1. In HACS, open **Integrations** and select the menu in the upper-right corner.
-2. Choose **Custom repositories**, add `https://github.com/fclante/e-vaskeri-ha-app`, and select
-   **Integration** as the category.
-3. Find **E-Vaskeri**, download it, and restart Home Assistant.
+1. Open **Settings → Marketplace**.
+2. Select **Add from link** and enter `https://github.com/fclante/e-vaskeri-ha-app`.
+3. If prompted, select **Integration**, then add the repository.
+4. Open the E-Vaskeri repository in Marketplace and select **Install**.
+5. If Home Assistant requests a restart, restart it.
+
+Marketplace is built into Home Assistant 2026.11 and newer; you do not need to install HACS separately.
+
+### Home Assistant 2026.10 and older: HACS custom repository
+
+Install HACS first by following the [official HACS download instructions](https://hacs.xyz/docs/use/download/download/).
+Then, in HACS, open **Integrations → ⋮ → Custom repositories**, add
+`https://github.com/fclante/e-vaskeri-ha-app` as an **Integration**, download E-Vaskeri, and restart
+Home Assistant.
+
+For details about Marketplace and the transition from HACS, see the [official Marketplace documentation](https://hacs.xyz/docs/marketplace/).
 
 ### Manual installation
 

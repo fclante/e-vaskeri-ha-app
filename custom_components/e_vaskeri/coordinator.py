@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import abstractmethod
 import asyncio
 from collections.abc import Awaitable, Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import EVaskeriAuthError, EVaskeriClient, EVaskeriError
 from .const import (
@@ -37,6 +38,11 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 type CycleFinishedListener = Callable[[dict[str, Any]], None]
+
+# Statement times have minute resolution and come from another clock.
+OWNERSHIP_GRACE = timedelta(minutes=5)
+# How far back to look for a cycle that was already running when Home Assistant started.
+MAX_UNOBSERVED_CYCLE = timedelta(hours=4)
 
 
 def machine_device_identifier(entry_id: str, machine_id: int) -> tuple[str, str]:
@@ -95,6 +101,8 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
             entry.options.get(CONF_MACHINES_INTERVAL, DEFAULT_MACHINES_INTERVAL),
         )
         self._cycle_listeners: list[CycleFinishedListener] = []
+        self._started_at = dt_util.utcnow()
+        self._last_not_busy: dict[int, datetime] = {}
 
     @callback
     def async_add_cycle_finished_listener(
@@ -112,11 +120,34 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
     async def _async_fetch(self) -> dict[str, Any]:
         data = await self.client.async_get_machines()
         if self.data is not None:
-            self._async_announce_finished_cycles(self.data, data)
+            await self._async_announce_finished_cycles(self.data, data)
+        now = dt_util.utcnow()
+        for machine in data["machines"]:
+            if machine["state"] != STATE_BUSY:
+                self._last_not_busy[machine["id"]] = now
         return data
 
-    @callback
-    def _async_announce_finished_cycles(
+    async def _async_started_by_me(self, machine_id: int) -> bool | None:
+        """Whether the account's statement has a usage for this machine since it was last free.
+
+        Returns None when the statement cannot be read.
+        """
+        since = self._last_not_busy.get(machine_id, self._started_at - MAX_UNOBSERVED_CYCLE)
+        since -= OWNERSHIP_GRACE
+        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        account = runtime_data.account.data if runtime_data else None
+        cached = (account or {}).get("statement")
+        if cached is not None and _has_usage_since(cached, machine_id, since):
+            return True
+        # The cached statement may predate the cycle, so ask the API once more.
+        try:
+            statement = await self.client.async_get_statement(STATEMENT_LIMIT)
+        except EVaskeriError as err:
+            _LOGGER.debug("Statement unavailable for ownership check: %s", err)
+            return None if cached is None else False
+        return _has_usage_since(statement, machine_id, since)
+
+    async def _async_announce_finished_cycles(
         self, previous: dict[str, Any], current: dict[str, Any]
     ) -> None:
         previous_by_id = {m["id"]: m for m in previous["machines"]}
@@ -130,6 +161,7 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
                 or machine["state"] not in (STATE_FREE, STATE_DONE)
             ):
                 continue
+            mine = await self._async_started_by_me(machine["id"])
             device = device_registry.async_get_device_by_identifier(
                 machine_device_identifier(entry_id, machine["id"]), entry_id
             )
@@ -140,10 +172,26 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
                 "program": machine.get("program") or before.get("program"),
                 "device_id": device.id if device else None,
                 "entry_id": entry_id,
+                "mine": mine,
             }
             self.hass.bus.async_fire(EVENT_CYCLE_FINISHED, data)
             for listener in list(self._cycle_listeners):
                 listener(data)
+
+
+def _has_usage_since(statement: dict[str, Any], machine_id: int, since: datetime) -> bool:
+    """Whether the statement has a usage of the machine that started at or after `since`.
+
+    Statement dates and times are local without an offset: read them in the Home Assistant
+    time zone.
+    """
+    for entry in statement.get("entries") or []:
+        if entry.get("kind") != "usage" or entry.get("unit_id") != machine_id:
+            continue
+        started = dt_util.parse_datetime(f"{entry.get('date')}T{entry.get('time')}")
+        if started is not None and dt_util.as_utc(started) >= since:
+            return True
+    return False
 
 
 class AccountCoordinator(EVaskeriCoordinator[dict[str, Any]]):

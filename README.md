@@ -146,6 +146,13 @@ Event data:
 | `program` | Program that was running (may be `null`) |
 | `device_id` | Home Assistant device id of the machine |
 | `entry_id` | Config entry id |
+| `mine` | `true` when your own account paid for the cycle, `false` when someone else's did, `null` when the statement could not be read |
+
+`mine` compares the finished machine against your statement: the cycle is yours when the
+statement has a usage of that machine that started after the machine was last seen free. If the
+cached statement has no match, the integration fetches it once more before deciding. A machine
+that was already running when Home Assistant started is matched against usages from up to four
+hours before startup.
 
 Example automation:
 
@@ -157,7 +164,7 @@ automation:
         event_type: e_vaskeri_cycle_finished
     conditions:
       - condition: template
-        value_template: "{{ trigger.event.data.type == 'washer' }}"
+        value_template: "{{ trigger.event.data.type == 'washer' and trigger.event.data.mine }}"
     actions:
       - action: notify.mobile_app_my_phone
         data:

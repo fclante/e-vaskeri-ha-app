@@ -166,6 +166,7 @@ async def test_cycle_finished_event(
         "program": "95° Normal",
         "device_id": device.id,
         "entry_id": init_integration.entry_id,
+        "mine": False,
     }
     entity = hass.states.get(f"event.{HUB}_cycle_finished")
     assert entity.attributes["event_type"] == "cycle_finished"
@@ -176,6 +177,66 @@ async def test_cycle_finished_event(
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=62))
     await hass.async_block_till_done()
     assert len(bus_events) == 1
+
+
+def statement_with_usage(machine_id: int, started: datetime) -> dict:
+    """The sample statement with a usage of the machine at a local start time."""
+    local = dt_util.as_local(started)
+    entry = {"kind": "usage", "unit_id": machine_id}
+    entry |= {"date": local.strftime("%Y-%m-%d"), "time": local.strftime("%H:%M")}
+    return {"entries": [entry, *load_sample("statement")["entries"]], "total": 1}
+
+
+@pytest.mark.parametrize(
+    ("started_offset", "mine"),
+    [(timedelta(minutes=1), True), (timedelta(hours=-1), False)],
+    ids=["started-after-free", "older-usage"],
+)
+async def test_cycle_finished_mine(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    started_offset: timedelta,
+    mine: bool,
+) -> None:
+    """A cycle is mine when the statement has a usage of the machine since it was last free."""
+    bus_events = async_capture_events(hass, EVENT_CYCLE_FINISHED)
+    free_at = dt_util.utcnow()  # washer 1 is free in the sample
+    mock_api(aioclient_mock, machines=machines_with_state(1, state="busy"))
+    async_fire_time_changed(hass, free_at + timedelta(seconds=31))
+    await hass.async_block_till_done()
+
+    mock_api(
+        aioclient_mock,
+        machines=machines_with_state(1, state="done"),
+        statement=statement_with_usage(1, free_at + started_offset),
+    )
+    async_fire_time_changed(hass, free_at + timedelta(seconds=62))
+    await hass.async_block_till_done()
+
+    assert [e.data["mine"] for e in bus_events] == [mine]
+
+
+async def test_cycle_finished_mine_unknown_without_statement(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """`mine` is None when the statement could never be read."""
+    mock_api(aioclient_mock)
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    mock_config_entry.runtime_data.account.data.pop("statement")
+    bus_events = async_capture_events(hass, EVENT_CYCLE_FINISHED)
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(f"{BASE_URL}/api/v1/machines", json=machines_with_state(3, state="free"))
+    aioclient_mock.get(f"{BASE_URL}/api/v1/statement", status=500)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done()
+
+    assert [e.data["mine"] for e in bus_events] == [None]
 
 
 async def test_no_event_for_other_transitions(

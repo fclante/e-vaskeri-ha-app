@@ -29,6 +29,7 @@ def mock_api(
     aioclient_mock: AiohttpClientMocker,
     *,
     machines: dict[str, Any] | None = None,
+    statement: dict[str, Any] | None = None,
     extras: dict[str, Any] | None = None,
     legacy_api: bool = False,
     status: int = 200,
@@ -44,7 +45,7 @@ def mock_api(
         "/health": {"status": "ok"},
         "/api/v1/machines": machines or load_sample("machines"),
         "/api/v1/balance": load_sample("balance"),
-        "/api/v1/statement": load_sample("statement"),
+        "/api/v1/statement": statement or load_sample("statement"),
         "/api/v1/stats": load_sample("stats"),
     }
     for path, body in responses.items():

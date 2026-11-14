@@ -1,0 +1,21 @@
+{
+  "updated_at": "2025-01-15T13:00:00+00:00",
+  "available": true,
+  "total": 2,
+  "messages": [
+    {
+      "id": "demo-message-2",
+      "received": "Wednesday, 15 January at 12:00",
+      "subject": "Sample one-time code",
+      "body": "Hello [email]\n\nYour one-time code is [redacted].",
+      "redacted": true
+    },
+    {
+      "id": "demo-message-1",
+      "received": "Tuesday, 14 January at 08:00",
+      "subject": "Example maintenance notice",
+      "body": "The laundry room will be unavailable for scheduled maintenance.",
+      "redacted": false
+    }
+  ]
+}

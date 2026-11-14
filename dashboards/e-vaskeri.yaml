@@ -1,0 +1,36 @@
+# E-Vaskeri dashboard
+#
+# Paste into a dashboard's raw configuration editor (⋮ → Edit dashboard → ⋮ → Raw configuration editor)
+# or save as a YAML-mode dashboard. The card finds the integration's sensors on its own, so no entity
+# ids are needed. Requires the E-Vaskeri integration (it registers the card resource automatically).
+title: Vaskeri
+views:
+  # Sections view (Home Assistant 2024.x and newer): the full card, spanning the width.
+  - title: Vaskeri
+    path: vaskeri
+    icon: mdi:washing-machine
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:e-vaskeri-card
+            grid_options:
+              columns: full
+
+  # Masonry view: a compact "is a machine free?" card next to the full card.
+  - title: Kompakt
+    path: vaskeri-kompakt
+    icon: mdi:tumble-dryer
+    cards:
+      - type: custom:e-vaskeri-card
+        compact: true
+        title: Vaskeriet
+      - type: custom:e-vaskeri-card
+        show:
+          - balance
+          - spend
+          - activity
+        # language: en        # force English/Danish instead of following your profile
+        # machine_types: [washer, dryer]

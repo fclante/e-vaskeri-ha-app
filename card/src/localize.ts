@@ -1,0 +1,206 @@
+import type { Lang, MachineState, MachineType } from './types';
+
+const en = {
+  live: 'Live · updated {time}',
+  liveNoTime: 'Live',
+  unavailable: 'Unavailable',
+  stale: 'Data is {n} min old',
+  free: 'Free',
+  busy: 'In use',
+  done: 'Done – take out the laundry',
+  doneShort: 'Done',
+  error: 'Error',
+  unknown: 'Unknown',
+  almostDone: 'Almost done',
+  finishAt: 'done at {time}',
+  nextFree: 'Next free',
+  nextFinish: 'Next to finish',
+  nextFreeChip: '{name} in {time}',
+  nextFreeNow: '{name} any moment',
+  allBusy: 'All {types} are in use',
+  availability: 'Availability',
+  free_of: '{free} of {total} free',
+  type_washer: 'Washer',
+  type_dryer: 'Dryer',
+  type_mangle: 'Mangle',
+  type_other: 'Machine',
+  types_washer: 'Washers',
+  types_dryer: 'Dryers',
+  types_mangle: 'Mangles',
+  types_other: 'Other',
+  typesLower_washer: 'washers',
+  typesLower_dryer: 'dryers',
+  typesLower_mangle: 'mangles',
+  typesLower_other: 'machines',
+  min: '{n} min',
+  lessThanMin: 'under 1 min',
+  hourMin: '{h} h {m} min',
+  hour: '{h} h',
+  balance: 'Balance',
+  owed: 'Owed',
+  credit: 'Credit',
+  settled: 'Settled',
+  vsPrevious: 'vs. previous period',
+  lastPayment: 'Last payment',
+  payment: 'Payment',
+  monthlySpend: 'Monthly spending',
+  spend: 'Spending',
+  last12: 'Last 12 months',
+  washing: 'Washing',
+  drying: 'Drying',
+  total: 'Total',
+  avgWash: 'Avg. per wash',
+  avgDry: 'Avg. per dry',
+  washes: 'Washes',
+  dries: 'Dries',
+  favourite: 'Favourite machine',
+  topTemp: 'Most used temp.',
+  uses: '{n} uses',
+  heatmap: 'When you do laundry',
+  insight: 'You usually do laundry on {day} {from}–{to}',
+  insightNone: 'Not enough data yet to spot a pattern',
+  less: 'Less',
+  more: 'More',
+  uses_n: '{n} uses',
+  activity: 'Recent activity',
+  noActivity: 'No recent activity',
+  program: 'Program {n}',
+  setupTitle: 'E-Vaskeri is not set up yet',
+  setupBody:
+    'The E-Vaskeri sensors were not found. Add the E-Vaskeri integration under Settings → Devices & services, or point the card at your sensors with machines_entity / account_entity.',
+  noAccount: 'The account sensor was not found, so balance and spending are hidden.',
+  noMachines: 'The machine sensor was not found.',
+  unavailableBody: 'The laundry data is currently unavailable. The card will recover automatically.',
+  editor_title: 'Title',
+  editor_show: 'Sections',
+  editor_compact: 'Compact (header, availability and machines only)',
+  editor_machine_types: 'Machine types',
+  editor_language: 'Language',
+  editor_machines_entity: 'Machines entity (optional)',
+  editor_account_entity: 'Account entity (optional)',
+  editor_auto: 'Automatic',
+  sec_machines: 'Machines',
+  sec_balance: 'Balance',
+  sec_spend: 'Spending',
+  sec_heatmap: 'Heatmap',
+  sec_activity: 'Recent activity',
+  cardDescription: 'Laundry room availability, countdowns, balance and usage statistics',
+};
+
+const da: typeof en = {
+  live: 'Live · opdateret {time}',
+  liveNoTime: 'Live',
+  unavailable: 'Utilgængelig',
+  stale: 'Data er {n} min. gammel',
+  free: 'Fri',
+  busy: 'Optaget',
+  done: 'Færdig – tag tøjet ud',
+  doneShort: 'Færdig',
+  error: 'Fejl',
+  unknown: 'Ukendt',
+  almostDone: 'Færdig snart',
+  finishAt: 'færdig kl. {time}',
+  nextFree: 'Næste ledige',
+  nextFinish: 'Næste færdig',
+  nextFreeChip: '{name} om {time}',
+  nextFreeNow: '{name} lige om lidt',
+  allBusy: 'Alle {types} er optaget',
+  availability: 'Ledighed',
+  free_of: '{free} af {total} ledige',
+  type_washer: 'Vaskemaskine',
+  type_dryer: 'Tørretumbler',
+  type_mangle: 'Strygerulle',
+  type_other: 'Maskine',
+  types_washer: 'Vaskemaskiner',
+  types_dryer: 'Tørretumblere',
+  types_mangle: 'Strygerulle',
+  types_other: 'Andet',
+  typesLower_washer: 'vaskemaskiner',
+  typesLower_dryer: 'tørretumblere',
+  typesLower_mangle: 'strygerulle',
+  typesLower_other: 'maskiner',
+  min: '{n} min.',
+  lessThanMin: 'under 1 min.',
+  hourMin: '{h} t. {m} min.',
+  hour: '{h} t.',
+  balance: 'Saldo',
+  owed: 'Skyldigt',
+  credit: 'Til gode',
+  settled: 'Udlignet',
+  vsPrevious: 'ift. forrige periode',
+  lastPayment: 'Sidste betaling',
+  payment: 'Betaling',
+  monthlySpend: 'Månedligt forbrug',
+  spend: 'Forbrug',
+  last12: 'Seneste 12 måneder',
+  washing: 'Vask',
+  drying: 'Tørring',
+  total: 'I alt',
+  avgWash: 'Gns. pr. vask',
+  avgDry: 'Gns. pr. tørring',
+  washes: 'Vaske',
+  dries: 'Tørringer',
+  favourite: 'Yndlingsmaskine',
+  topTemp: 'Mest brugte temp.',
+  uses: '{n} gange',
+  heatmap: 'Hvornår vasker du',
+  insight: 'Du vasker oftest {day} kl. {from}–{to}',
+  insightNone: 'Endnu ikke nok data til at se et mønster',
+  less: 'Mindre',
+  more: 'Mere',
+  uses_n: '{n} gange',
+  activity: 'Seneste aktivitet',
+  noActivity: 'Ingen seneste aktivitet',
+  program: 'Program {n}',
+  setupTitle: 'E-Vaskeri er ikke sat op endnu',
+  setupBody:
+    'E-Vaskeri-sensorerne blev ikke fundet. Tilføj E-Vaskeri-integrationen under Indstillinger → Enheder og tjenester, eller peg kortet på dine sensorer med machines_entity / account_entity.',
+  noAccount: 'Konto-sensoren blev ikke fundet, så saldo og forbrug er skjult.',
+  noMachines: 'Maskin-sensoren blev ikke fundet.',
+  unavailableBody: 'Vaskeridata er midlertidigt utilgængelige. Kortet genopretter sig selv.',
+  editor_title: 'Titel',
+  editor_show: 'Sektioner',
+  editor_compact: 'Kompakt (kun overskrift, ledighed og maskiner)',
+  editor_machine_types: 'Maskintyper',
+  editor_language: 'Sprog',
+  editor_machines_entity: 'Maskin-entitet (valgfri)',
+  editor_account_entity: 'Konto-entitet (valgfri)',
+  editor_auto: 'Automatisk',
+  sec_machines: 'Maskiner',
+  sec_balance: 'Saldo',
+  sec_spend: 'Forbrug',
+  sec_heatmap: 'Varmekort',
+  sec_activity: 'Seneste aktivitet',
+  cardDescription: 'Ledige vaskemaskiner, nedtælling, saldo og forbrugsstatistik',
+};
+
+export type StringKey = keyof typeof en;
+
+const dictionaries: Record<Lang, typeof en> = { en, da };
+
+export type Translate = (key: StringKey, vars?: Record<string, string | number>) => string;
+
+export function makeTranslate(lang: Lang): Translate {
+  const dict = dictionaries[lang] ?? en;
+  return (key, vars) => {
+    let text: string = dict[key] ?? en[key] ?? key;
+    if (vars) {
+      for (const [name, value] of Object.entries(vars)) {
+        text = text.split(`{${name}}`).join(String(value));
+      }
+    }
+    return text;
+  };
+}
+
+export function stateLabel(t: Translate, state: MachineState): string {
+  return t(state === 'done' ? 'done' : state);
+}
+
+export function typeLabel(t: Translate, type: MachineType, plural = false): string {
+  return t(`${plural ? 'types' : 'type'}_${type}` as StringKey);
+}
+
+export function typeLabelLower(t: Translate, type: MachineType): string {
+  return t(`typesLower_${type}` as StringKey);
+}

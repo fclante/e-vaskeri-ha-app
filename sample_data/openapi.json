@@ -1,0 +1,952 @@
+{
+  "components": {
+    "schemas": {
+      "BalanceSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "balance_dkk": {
+            "description": "Negative means money is owed",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "currency": {
+            "example": "DKK",
+            "type": "string"
+          },
+          "last_payment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastPaymentSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owed_dkk": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "previous_period_dkk": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "FavouriteMachineSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HTTPError": {
+        "properties": {
+          "detail": {
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "HealthSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "example": "ok",
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "LastPaymentSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_dkk": {
+            "type": "number"
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MachineDetailSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "ends_at": {
+            "description": "Estimated finish time (UTC)",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Unit number, matches UnitId on receipts",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "example": "Vaskemaskine 1",
+            "type": "string"
+          },
+          "program": {
+            "example": "95° Normal",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw_status": {
+            "description": "Status text exactly as reported upstream",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "remaining_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "state": {
+            "enum": [
+              "free",
+              "busy",
+              "done",
+              "error",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "step": {
+            "example": "Hovedvask",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "washer",
+              "dryer",
+              "mangle",
+              "other"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MachineSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "ends_at": {
+            "description": "Estimated finish time (UTC)",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Unit number, matches UnitId on receipts",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "example": "Vaskemaskine 1",
+            "type": "string"
+          },
+          "program": {
+            "example": "95° Normal",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw_status": {
+            "description": "Status text exactly as reported upstream",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "remaining_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "state": {
+            "enum": [
+              "free",
+              "busy",
+              "done",
+              "error",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "step": {
+            "example": "Hovedvask",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "washer",
+              "dryer",
+              "mangle",
+              "other"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "MachinesSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "example": "Example Laundry",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "machines": {
+            "items": {
+              "$ref": "#/components/schemas/MachineSchema"
+            },
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/MachinesSummarySchema"
+          },
+          "updated_at": {
+            "description": "When the data was fetched from upstream (UTC)",
+            "format": "date-time",
+            "type": "string"
+          },
+          "upstream_updated": {
+            "example": "22:18",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "MachinesSummarySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "busy": {
+            "type": "integer"
+          },
+          "by_type": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TypeCountSchema"
+            },
+            "type": "object"
+          },
+          "free": {
+            "type": "integer"
+          },
+          "next_free": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextFreeSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "MonthSpendSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dryer_dkk": {
+            "type": "number"
+          },
+          "month": {
+            "example": "2026-11",
+            "type": "string"
+          },
+          "total_dkk": {
+            "type": "number"
+          },
+          "washer_dkk": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "NextFreeSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "ends_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ProgramCountSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "program": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReadySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "credentials_configured": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "StatementEntrySchema": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_dkk": {
+            "description": "Positive = charge, negative = payment",
+            "type": "number"
+          },
+          "date": {
+            "example": "2025-01-15",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "duration_min": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "kind": {
+            "enum": [
+              "usage",
+              "payment"
+            ],
+            "type": "string"
+          },
+          "program": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "temperature_c": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "time": {
+            "example": "10:36",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "unit_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "StatementSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/StatementEntrySchema"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "StatsSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_cost_per_dry_dkk": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "avg_cost_per_wash_dkk": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "current_month_spend_dkk": {
+            "type": "number"
+          },
+          "favourite_machine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FavouriteMachineSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "heatmap": {
+            "description": "7 rows (Monday=0) x 24 columns (hour of day) of usage counts",
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "months": {
+            "items": {
+              "$ref": "#/components/schemas/MonthSpendSchema"
+            },
+            "type": "array"
+          },
+          "top_programs": {
+            "items": {
+              "$ref": "#/components/schemas/ProgramCountSchema"
+            },
+            "type": "array"
+          },
+          "top_temperatures": {
+            "items": {
+              "$ref": "#/components/schemas/TemperatureCountSchema"
+            },
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TotalsSchema"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TemperatureCountSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "temperature_c": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TotalsSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dries": {
+            "type": "integer"
+          },
+          "dryer_dkk": {
+            "type": "number"
+          },
+          "total_dkk": {
+            "type": "number"
+          },
+          "washer_dkk": {
+            "type": "number"
+          },
+          "washes": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TypeCountSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "busy": {
+            "type": "integer"
+          },
+          "free": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "detail": {
+            "properties": {
+              "<location>": {
+                "properties": {
+                  "<field_name>": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Wrapper around the e-vaskeri (Nortec) laundry service. Use `/api/v1` for normalized data; the legacy endpoints are kept for compatibility.",
+    "title": "E-Vaskeri API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/balance": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceSchema"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Current balance in DKK"
+      }
+    },
+    "/api/v1/machines": {
+      "get": {
+        "description": "Free/busy state per machine, plus program, step and estimated finish time for running ones.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachinesSchema"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "All machines with live state"
+      }
+    },
+    "/api/v1/machines/{machine_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "machine_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MachineDetailSchema"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            },
+            "description": "Not found"
+          }
+        },
+        "summary": "A single machine"
+      }
+    },
+    "/api/v1/statement": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "ISO date, e.g. 2026-01-01",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementSchema"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Usage and payments, newest first, with ISO dates and DKK amounts"
+      }
+    },
+    "/api/v1/stats": {
+      "get": {
+        "description": "Monthly spend, averages, favourites and a weekday x hour heatmap.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "months",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 60,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatsSchema"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Derived usage statistics"
+      }
+    },
+    "/balance": {
+      "get": {
+        "deprecated": true,
+        "description": "Optional `session` query param. When omitted the API uses its own server-side login.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Raw upstream statement"
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Does not call upstream.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthSchema"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Liveness probe"
+      }
+    },
+    "/login": {
+      "get": {
+        "deprecated": true,
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Log in and return an upstream session token"
+      }
+    },
+    "/metrics": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Prometheus text exposition format"
+          }
+        },
+        "summary": "Prometheus metrics"
+      }
+    },
+    "/ready": {
+      "get": {
+        "description": "503 if credentials are missing or upstream has been failing.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadySchema"
+                }
+              }
+            },
+            "description": "Successful response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            },
+            "description": "Not ready"
+          }
+        },
+        "summary": "Readiness probe"
+      }
+    },
+    "/running-machines": {
+      "get": {
+        "deprecated": true,
+        "description": "Optional `session` query param. When omitted the API uses its own server-side login.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Raw upstream live view"
+      }
+    },
+    "/status": {
+      "get": {
+        "deprecated": true,
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Raw SVG status of one machine"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost/"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Normalized machines, balance and statistics",
+      "name": "v1"
+    },
+    {
+      "description": "Health, readiness and Prometheus metrics",
+      "name": "ops"
+    },
+    {
+      "description": "Deprecated pass-through endpoints",
+      "name": "legacy"
+    }
+  ]
+}

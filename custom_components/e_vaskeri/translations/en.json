@@ -1,0 +1,135 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to the E-Vaskeri API",
+        "description": "Enter the address of your E-Vaskeri API service.",
+        "data": {
+          "url": "API base URL",
+          "api_key": "API key (optional)"
+        },
+        "data_description": {
+          "url": "For example http://e-vaskeri-api.default.svc:5000",
+          "api_key": "Only needed when the API is protected with an API key."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate E-Vaskeri",
+        "description": "The API rejected the API key. Enter a valid key.",
+        "data": {
+          "api_key": "API key"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure E-Vaskeri",
+        "data": {
+          "url": "API base URL",
+          "api_key": "API key (optional)"
+        },
+        "data_description": {
+          "url": "For example http://e-vaskeri-api.default.svc:5000",
+          "api_key": "Only needed when the API is protected with an API key."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the API",
+      "invalid_auth": "Invalid API key",
+      "invalid_url": "Enter a valid http:// or https:// address",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This API is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Reconfiguration was successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling intervals",
+        "data": {
+          "machines_interval": "Machines poll interval",
+          "account_interval": "Account poll interval"
+        },
+        "data_description": {
+          "machines_interval": "Seconds between machine status updates (minimum 10).",
+          "account_interval": "Seconds between balance, statement and statistics updates (minimum 60)."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "machine_state": {
+        "name": "Status",
+        "state": {
+          "free": "Free",
+          "busy": "Busy",
+          "done": "Done",
+          "error": "Error",
+          "unknown": "Unknown"
+        }
+      },
+      "machine_finishes": {
+        "name": "Finishes"
+      },
+      "free_washers": {
+        "name": "Free washers"
+      },
+      "free_dryers": {
+        "name": "Free dryers"
+      },
+      "free_machines": {
+        "name": "Free machines"
+      },
+      "next_free": {
+        "name": "Next free"
+      },
+      "machines_overview": {
+        "name": "Machines overview"
+      },
+      "account_overview": {
+        "name": "Account overview"
+      },
+      "balance": {
+        "name": "Balance"
+      },
+      "previous_period_balance": {
+        "name": "Previous period"
+      },
+      "current_month_spend": {
+        "name": "Spend this month"
+      },
+      "last_payment": {
+        "name": "Last payment"
+      },
+      "next_bookable_slot": {
+        "name": "Next bookable slot"
+      },
+      "bookings_remaining": {
+        "name": "Bookings remaining"
+      },
+      "messages": {
+        "name": "Messages"
+      }
+    },
+    "binary_sensor": {
+      "machine_in_use": {
+        "name": "In use"
+      }
+    },
+    "event": {
+      "cycle_finished": {
+        "name": "Cycle finished",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "cycle_finished": "Cycle finished"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Forbind til E-Vaskeri API'et",
+        "description": "Indtast adressen på din E-Vaskeri API-tjeneste.",
+        "data": {
+          "url": "API-adresse",
+          "api_key": "API-nøgle (valgfri)"
+        },
+        "data_description": {
+          "url": "For eksempel http://e-vaskeri-api.default.svc:5000",
+          "api_key": "Kun nødvendig, hvis API'et er beskyttet med en API-nøgle."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Godkend E-Vaskeri igen",
+        "description": "API'et afviste API-nøglen. Indtast en gyldig nøgle.",
+        "data": {
+          "api_key": "API-nøgle"
+        }
+      },
+      "reconfigure": {
+        "title": "Omkonfigurer E-Vaskeri",
+        "data": {
+          "url": "API-adresse",
+          "api_key": "API-nøgle (valgfri)"
+        },
+        "data_description": {
+          "url": "For eksempel http://e-vaskeri-api.default.svc:5000",
+          "api_key": "Kun nødvendig, hvis API'et er beskyttet med en API-nøgle."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kunne ikke forbinde til API'et",
+      "invalid_auth": "Ugyldig API-nøgle",
+      "invalid_url": "Indtast en gyldig http://- eller https://-adresse",
+      "unknown": "Uventet fejl"
+    },
+    "abort": {
+      "already_configured": "Dette API er allerede konfigureret",
+      "reauth_successful": "Godkendelsen lykkedes",
+      "reconfigure_successful": "Omkonfigureringen lykkedes"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opdateringsintervaller",
+        "data": {
+          "machines_interval": "Opdateringsinterval for maskiner",
+          "account_interval": "Opdateringsinterval for konto"
+        },
+        "data_description": {
+          "machines_interval": "Sekunder mellem opdateringer af maskinstatus (mindst 10).",
+          "account_interval": "Sekunder mellem opdateringer af saldo, kontoudtog og statistik (mindst 60)."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "machine_state": {
+        "name": "Status",
+        "state": {
+          "free": "Fri",
+          "busy": "Optaget",
+          "done": "Færdig",
+          "error": "Fejl",
+          "unknown": "Ukendt"
+        }
+      },
+      "machine_finishes": {
+        "name": "Færdig kl."
+      },
+      "free_washers": {
+        "name": "Ledige vaskemaskiner"
+      },
+      "free_dryers": {
+        "name": "Ledige tørretumblere"
+      },
+      "free_machines": {
+        "name": "Ledige maskiner"
+      },
+      "next_free": {
+        "name": "Næste ledige"
+      },
+      "machines_overview": {
+        "name": "Maskineoversigt"
+      },
+      "account_overview": {
+        "name": "Kontooversigt"
+      },
+      "balance": {
+        "name": "Saldo"
+      },
+      "previous_period_balance": {
+        "name": "Forrige periode"
+      },
+      "current_month_spend": {
+        "name": "Forbrug denne måned"
+      },
+      "last_payment": {
+        "name": "Seneste betaling"
+      },
+      "next_bookable_slot": {
+        "name": "Næste ledige reservation"
+      },
+      "bookings_remaining": {
+        "name": "Reservationer tilbage"
+      },
+      "messages": {
+        "name": "Beskeder"
+      }
+    },
+    "binary_sensor": {
+      "machine_in_use": {
+        "name": "I brug"
+      }
+    },
+    "event": {
+      "cycle_finished": {
+        "name": "Program færdigt",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "cycle_finished": "Program færdigt"
+            }
+          }
+        }
+      }
+    }
+  }
+}

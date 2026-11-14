@@ -1,0 +1,12 @@
+{
+  "balance_dkk": 25.0,
+  "currency": "DKK",
+  "last_payment": {
+    "amount_dkk": 20.0,
+    "date": "2025-01-14",
+    "description": "Example payment"
+  },
+  "owed_dkk": 0.0,
+  "previous_period_dkk": 5.0,
+  "updated_at": "2025-01-15T13:00:00+00:00"
+}

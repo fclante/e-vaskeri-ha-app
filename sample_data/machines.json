@@ -1,0 +1,166 @@
+{
+  "location": "Example Laundry",
+  "machines": [
+    {
+      "ends_at": null,
+      "id": 1,
+      "name": "Vaskemaskine 1",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "washer"
+    },
+    {
+      "ends_at": null,
+      "id": 2,
+      "name": "Vaskemaskine 2",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "washer"
+    },
+    {
+      "ends_at": "2025-01-15T13:31:41+00:00",
+      "id": 3,
+      "name": "Vaskemaskine 3",
+      "program": "95° Normal",
+      "raw_status": "OPTAGET",
+      "remaining_seconds": 1901,
+      "state": "busy",
+      "step": "Hovedvask",
+      "type": "washer"
+    },
+    {
+      "ends_at": null,
+      "id": 4,
+      "name": "Vaskemaskine 4",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "washer"
+    },
+    {
+      "ends_at": null,
+      "id": 5,
+      "name": "Vaskemaskine 5",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "washer"
+    },
+    {
+      "ends_at": null,
+      "id": 6,
+      "name": "Vaskemaskine 6",
+      "program": "40° Mild",
+      "raw_status": "FÆRDIG",
+      "remaining_seconds": 0,
+      "state": "done",
+      "step": null,
+      "type": "washer"
+    },
+    {
+      "ends_at": null,
+      "id": 7,
+      "name": "Vaskemaskine 7",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "washer"
+    },
+    {
+      "ends_at": null,
+      "id": 8,
+      "name": "Vaskemaskine 8",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "washer"
+    },
+    {
+      "ends_at": null,
+      "id": 9,
+      "name": "Tørretumbler 9",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "dryer"
+    },
+    {
+      "ends_at": "2025-01-15T13:22:10+00:00",
+      "id": 10,
+      "name": "Tørretumbler 10",
+      "program": "70° ExtraTørt",
+      "raw_status": "OPTAGET",
+      "remaining_seconds": 1330,
+      "state": "busy",
+      "step": "Tørrer",
+      "type": "dryer"
+    },
+    {
+      "ends_at": null,
+      "id": 11,
+      "name": "Tørretumbler 11",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "dryer"
+    },
+    {
+      "ends_at": null,
+      "id": 12,
+      "name": "Strygerulle 12",
+      "program": null,
+      "raw_status": "Fri",
+      "remaining_seconds": null,
+      "state": "free",
+      "step": null,
+      "type": "mangle"
+    }
+  ],
+  "summary": {
+    "busy": 3,
+    "by_type": {
+      "dryer": {
+        "busy": 1,
+        "free": 2,
+        "total": 3
+      },
+      "mangle": {
+        "busy": 0,
+        "free": 1,
+        "total": 1
+      },
+      "washer": {
+        "busy": 2,
+        "free": 6,
+        "total": 8
+      }
+    },
+    "free": 9,
+    "next_free": {
+      "ends_at": "2025-01-15T13:22:10+00:00",
+      "id": 10,
+      "name": "Tørretumbler 10"
+    },
+    "total": 12
+  },
+  "updated_at": "2025-01-15T13:00:00+00:00",
+  "upstream_updated": "13:01"
+}

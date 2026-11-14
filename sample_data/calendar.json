@@ -1,0 +1,27 @@
+{
+  "updated_at": "2025-01-15T13:00:00+00:00",
+  "available": true,
+  "location": "Example Laundry",
+  "calendars": [
+    {
+      "calendar_id": 1,
+      "description": "Vaskemaskine 1 - 8",
+      "from": "2025-01-15",
+      "to": "2025-12-31",
+      "remaining_bookings": 2,
+      "disabled": false,
+      "individual": true,
+      "units": [{"id": 1, "name": "Vaskemaskine 1"}, {"id": 2, "name": "Vaskemaskine 2"}],
+      "days": [
+        {
+          "date": "2025-01-16",
+          "slots": [
+            {"start": "2025-01-16T07:00", "end": "2025-01-16T10:00", "state": "free", "bookable": true, "free_unit_ids": [1, 2]},
+            {"start": "2025-01-16T10:00", "end": "2025-01-16T13:00", "state": "full", "bookable": false, "free_unit_ids": []}
+          ]
+        }
+      ]
+    }
+  ],
+  "next_free_slot": {"calendar_id": 1, "start": "2025-01-16T07:00", "end": "2025-01-16T10:00", "free_unit_ids": [1, 2]}
+}

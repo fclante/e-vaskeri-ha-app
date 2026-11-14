@@ -1,0 +1,48 @@
+{
+  "avg_cost_per_dry_dkk": 6.17,
+  "avg_cost_per_wash_dkk": 9.75,
+  "current_month_spend_dkk": 15.0,
+  "favourite_machine": {
+    "count": 12,
+    "name": "Washer 2"
+  },
+  "heatmap": [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  "months": [
+    {"dryer_dkk": 8.0, "month": "2025-01", "total_dkk": 18.0, "washer_dkk": 10.0},
+    {"dryer_dkk": 10.0, "month": "2025-02", "total_dkk": 22.0, "washer_dkk": 12.0},
+    {"dryer_dkk": 7.0, "month": "2025-03", "total_dkk": 18.0, "washer_dkk": 11.0},
+    {"dryer_dkk": 9.0, "month": "2025-04", "total_dkk": 21.0, "washer_dkk": 12.0},
+    {"dryer_dkk": 11.0, "month": "2025-05", "total_dkk": 24.0, "washer_dkk": 13.0},
+    {"dryer_dkk": 8.0, "month": "2025-06", "total_dkk": 18.0, "washer_dkk": 10.0},
+    {"dryer_dkk": 12.0, "month": "2025-07", "total_dkk": 27.0, "washer_dkk": 15.0},
+    {"dryer_dkk": 9.0, "month": "2025-08", "total_dkk": 20.0, "washer_dkk": 11.0},
+    {"dryer_dkk": 13.0, "month": "2025-09", "total_dkk": 29.0, "washer_dkk": 16.0},
+    {"dryer_dkk": 10.0, "month": "2025-10", "total_dkk": 23.0, "washer_dkk": 13.0},
+    {"dryer_dkk": 8.0, "month": "2025-11", "total_dkk": 19.0, "washer_dkk": 11.0},
+    {"dryer_dkk": 10.0, "month": "2025-12", "total_dkk": 22.0, "washer_dkk": 12.0}
+  ],
+  "top_programs": [
+    {"count": 12, "program": 2},
+    {"count": 7, "program": 1}
+  ],
+  "top_temperatures": [
+    {"count": 12, "temperature_c": 40},
+    {"count": 7, "temperature_c": 30}
+  ],
+  "totals": {
+    "dries": 18,
+    "dryer_dkk": 123.0,
+    "total_dkk": 261.0,
+    "washer_dkk": 138.0,
+    "washes": 32
+  },
+  "updated_at": "2025-01-15T13:00:00+00:00"
+}

@@ -1,0 +1,9 @@
+{
+  "updated_at": "2025-01-15T13:00:00+00:00",
+  "available": true,
+  "location": "Example Laundry",
+  "groups": [
+    {"label": "Washers 1 & 5", "unit_type": "washer", "unit_ids": [1, 5], "prices": [{"label": "Price per start", "amount_dkk": 20.0, "text": "20,00 kr."}]},
+    {"label": "Dryers 9 - 11", "unit_type": "dryer", "unit_ids": [9, 10, 11], "prices": [{"label": "Price per hour", "amount_dkk": 30.0, "text": "30,00 kr."}]}
+  ]
+}

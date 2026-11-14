@@ -1,0 +1,13 @@
+{
+  "domain": "e_vaskeri",
+  "name": "E-Vaskeri",
+  "codeowners": ["@fclante"],
+  "config_flow": true,
+  "dependencies": ["http", "frontend"],
+  "documentation": "https://github.com/fclante/e-vaskeri-ha-app",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/fclante/e-vaskeri-ha-app/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

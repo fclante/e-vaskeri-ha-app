@@ -1,0 +1,8 @@
+{
+  "updated_at": "2025-01-15T13:00:00+00:00",
+  "total": 2,
+  "periods": [
+    {"title": "15 January 2025", "start": "2025-01-15", "end": "2025-01-15", "note": null, "balance_dkk": 25.0, "spend_dkk": 15.0, "usage_count": 2},
+    {"title": "14 January 2025", "start": "2025-01-14", "end": "2025-01-14", "note": "Example payment", "balance_dkk": 10.0, "spend_dkk": 20.0, "usage_count": 1}
+  ]
+}

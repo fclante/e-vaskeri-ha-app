@@ -1,0 +1,91 @@
+blueprint:
+  name: E-Vaskeri - Notify when a cycle has finished
+  description: >
+    Sends a notification when a washer, dryer or mangle in your laundry room
+    finishes its cycle. Triggered by the `e_vaskeri_cycle_finished` event of the
+    E-Vaskeri integration. Leave the machine filters empty to be notified about
+    every machine.
+  domain: automation
+  source_url: https://github.com/fclante/e-vaskeri-ha-app/blob/main/blueprints/automation/e_vaskeri/notify_cycle_finished.yaml
+  homeassistant:
+    min_version: 2024.10.0
+  input:
+    machine_types:
+      name: Machine types
+      description: Only notify for these machine types.
+      default: [washer, dryer, mangle]
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Washer
+              value: washer
+            - label: Dryer
+              value: dryer
+            - label: Mangle
+              value: mangle
+    machines:
+      name: Machines
+      description: Only notify for these machines. Leave empty for all machines.
+      default: []
+      selector:
+        device:
+          multiple: true
+          filter:
+            - integration: e_vaskeri
+              model: Washer
+            - integration: e_vaskeri
+              model: Dryer
+            - integration: e_vaskeri
+              model: Mangle
+    notify_service:
+      name: Notify action
+      description: >
+        The notify action to call, for example `notify.mobile_app_my_phone`
+        or `notify.notify`.
+      default: notify.notify
+      selector:
+        text:
+    title:
+      name: Title
+      default: E-Vaskeri
+      selector:
+        text:
+    message:
+      name: Message
+      description: >
+        Template for the message. Available variables: `name`, `type`,
+        `program`, `machine_id`.
+      default: "{{ name }} is finished{% if program %} ({{ program }}){% endif %}."
+      selector:
+        template:
+
+mode: queued
+max_exceeded: silent
+
+variables:
+  machine_types: !input machine_types
+  machines: !input machines
+  notify_service: !input notify_service
+  title: !input title
+  name: "{{ trigger.event.data.name }}"
+  type: "{{ trigger.event.data.type }}"
+  program: "{{ trigger.event.data.program }}"
+  machine_id: "{{ trigger.event.data.machine_id }}"
+  message: !input message
+
+triggers:
+  - trigger: event
+    event_type: e_vaskeri_cycle_finished
+
+conditions:
+  - condition: template
+    value_template: "{{ type in machine_types }}"
+  - condition: template
+    value_template: "{{ not machines or trigger.event.data.device_id in machines }}"
+
+actions:
+  - action: "{{ notify_service }}"
+    data:
+      title: "{{ title }}"
+      message: "{{ message }}"

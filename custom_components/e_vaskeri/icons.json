@@ -1,0 +1,42 @@
+{
+  "entity": {
+    "sensor": {
+      "machine_state": {
+        "default": "mdi:washing-machine",
+        "state": {
+          "free": "mdi:check-circle-outline",
+          "busy": "mdi:progress-clock",
+          "done": "mdi:check-circle",
+          "error": "mdi:alert-circle",
+          "unknown": "mdi:help-circle-outline"
+        }
+      },
+      "machine_finishes": { "default": "mdi:timer-sand" },
+      "free_washers": { "default": "mdi:washing-machine" },
+      "free_dryers": { "default": "mdi:tumble-dryer" },
+      "free_machines": { "default": "mdi:counter" },
+      "next_free": { "default": "mdi:clock-outline" },
+      "machines_overview": { "default": "mdi:view-dashboard-outline" },
+      "account_overview": { "default": "mdi:chart-line" },
+      "balance": { "default": "mdi:wallet-outline" },
+      "previous_period_balance": { "default": "mdi:history" },
+      "current_month_spend": { "default": "mdi:calendar-month-outline" },
+      "last_payment": { "default": "mdi:cash-check" },
+      "next_bookable_slot": { "default": "mdi:calendar-clock" },
+      "bookings_remaining": { "default": "mdi:calendar-check" },
+      "messages": { "default": "mdi:message-text-outline" }
+    },
+    "binary_sensor": {
+      "machine_in_use": {
+        "default": "mdi:washing-machine",
+        "state": {
+          "on": "mdi:washing-machine",
+          "off": "mdi:washing-machine-off"
+        }
+      }
+    },
+    "event": {
+      "cycle_finished": { "default": "mdi:bell-ring-outline" }
+    }
+  }
+}

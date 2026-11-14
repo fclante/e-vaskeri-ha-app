@@ -1,0 +1,196 @@
+"""Data update coordinators for the E-Vaskeri integration."""
+
+from __future__ import annotations
+
+from abc import abstractmethod
+import asyncio
+from collections.abc import Awaitable, Callable
+from datetime import timedelta
+import logging
+from typing import TYPE_CHECKING, Any
+
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
+from .api import EVaskeriAuthError, EVaskeriClient, EVaskeriError
+from .const import (
+    CONF_ACCOUNT_INTERVAL,
+    CONF_MACHINES_INTERVAL,
+    DEFAULT_ACCOUNT_INTERVAL,
+    DEFAULT_MACHINES_INTERVAL,
+    DOMAIN,
+    EVENT_CYCLE_FINISHED,
+    MESSAGES_LIMIT,
+    PERIODS_LIMIT,
+    STATE_BUSY,
+    STATE_DONE,
+    STATE_FREE,
+    STATEMENT_LIMIT,
+    STATS_MONTHS,
+)
+
+if TYPE_CHECKING:
+    from . import EVaskeriConfigEntry
+
+_LOGGER = logging.getLogger(__name__)
+
+type CycleFinishedListener = Callable[[dict[str, Any]], None]
+
+
+def machine_device_identifier(entry_id: str, machine_id: int) -> tuple[str, str]:
+    """Return the device registry identifier of a machine."""
+    return (DOMAIN, f"{entry_id}_{machine_id}")
+
+
+class EVaskeriCoordinator[DataT](DataUpdateCoordinator[DataT]):
+    """Base coordinator translating client errors into coordinator errors."""
+
+    config_entry: EVaskeriConfigEntry
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: EVaskeriConfigEntry,
+        client: EVaskeriClient,
+        name: str,
+        interval: int,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name=f"{DOMAIN} {name}",
+            update_interval=timedelta(seconds=interval),
+        )
+        self.client = client
+
+    async def _async_update_data(self) -> DataT:
+        try:
+            return await self._async_fetch()
+        except EVaskeriAuthError as err:
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except EVaskeriError as err:
+            raise UpdateFailed(str(err)) from err
+
+    @abstractmethod
+    async def _async_fetch(self) -> DataT:
+        """Fetch fresh data from the API."""
+
+
+class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
+    """Polls the machine list and announces finished cycles."""
+
+    def __init__(
+        self, hass: HomeAssistant, entry: EVaskeriConfigEntry, client: EVaskeriClient
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            entry,
+            client,
+            "machines",
+            entry.options.get(CONF_MACHINES_INTERVAL, DEFAULT_MACHINES_INTERVAL),
+        )
+        self._cycle_listeners: list[CycleFinishedListener] = []
+
+    @callback
+    def async_add_cycle_finished_listener(
+        self, listener: CycleFinishedListener
+    ) -> Callable[[], None]:
+        """Register a listener for finished cycles and return its remover."""
+        self._cycle_listeners.append(listener)
+
+        @callback
+        def remove() -> None:
+            self._cycle_listeners.remove(listener)
+
+        return remove
+
+    async def _async_fetch(self) -> dict[str, Any]:
+        data = await self.client.async_get_machines()
+        if self.data is not None:
+            self._async_announce_finished_cycles(self.data, data)
+        return data
+
+    @callback
+    def _async_announce_finished_cycles(
+        self, previous: dict[str, Any], current: dict[str, Any]
+    ) -> None:
+        previous_by_id = {m["id"]: m for m in previous["machines"]}
+        device_registry = dr.async_get(self.hass)
+        entry_id = self.config_entry.entry_id
+        for machine in current["machines"]:
+            before = previous_by_id.get(machine["id"])
+            if (
+                before is None
+                or before["state"] != STATE_BUSY
+                or machine["state"] not in (STATE_FREE, STATE_DONE)
+            ):
+                continue
+            device = device_registry.async_get_device_by_identifier(
+                machine_device_identifier(entry_id, machine["id"]), entry_id
+            )
+            data = {
+                "machine_id": machine["id"],
+                "name": machine["name"],
+                "type": machine["type"],
+                "program": machine.get("program") or before.get("program"),
+                "device_id": device.id if device else None,
+                "entry_id": entry_id,
+            }
+            self.hass.bus.async_fire(EVENT_CYCLE_FINISHED, data)
+            for listener in list(self._cycle_listeners):
+                listener(data)
+
+
+class AccountCoordinator(EVaskeriCoordinator[dict[str, Any]]):
+    """Polls balance, statement and statistics together with the optional extras.
+
+    Periods, prices, messages and the booking calendar come from newer API versions or
+    features a location may not have, so a failure there never fails the whole update.
+    """
+
+    def __init__(
+        self, hass: HomeAssistant, entry: EVaskeriConfigEntry, client: EVaskeriClient
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            entry,
+            client,
+            "account",
+            entry.options.get(CONF_ACCOUNT_INTERVAL, DEFAULT_ACCOUNT_INTERVAL),
+        )
+
+    async def _async_optional(self, key: str, request: Awaitable[dict[str, Any]]) -> Any:
+        """Return an optional payload, keeping the previous one when it cannot be fetched."""
+        try:
+            return await request
+        except EVaskeriAuthError:
+            raise
+        except EVaskeriError as err:
+            _LOGGER.debug("Optional %s data unavailable: %s", key, err)
+            return (self.data or {}).get(key)
+
+    async def _async_fetch(self) -> dict[str, Any]:
+        balance, statement, stats, periods, prices, messages, calendar = await asyncio.gather(
+            self.client.async_get_balance(),
+            self.client.async_get_statement(STATEMENT_LIMIT),
+            self.client.async_get_stats(STATS_MONTHS),
+            self._async_optional("periods", self.client.async_get_periods(PERIODS_LIMIT)),
+            self._async_optional("prices", self.client.async_get_prices()),
+            self._async_optional("messages", self.client.async_get_messages(MESSAGES_LIMIT)),
+            self._async_optional("calendar", self.client.async_get_calendar()),
+        )
+        return {
+            "balance": balance,
+            "statement": statement,
+            "stats": stats,
+            "periods": periods,
+            "prices": prices,
+            "messages": messages,
+            "calendar": calendar,
+        }

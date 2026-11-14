@@ -1,0 +1,38 @@
+[project]
+name = "e-vaskeri-ha-plugin"
+version = "1.0.0"
+description = "Home Assistant custom integration for the E-Vaskeri API"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest-homeassistant-custom-component",
+    "ruff",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["card"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PL", "C4", "ASYNC"]
+ignore = ["PLR0913", "PLR2004", "RUF012"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR0915"]

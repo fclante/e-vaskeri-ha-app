@@ -9,7 +9,7 @@
           "api_key": "API key (optional)"
         },
         "data_description": {
-          "url": "For example http://e-vaskeri-api.default.svc:5000",
+          "url": "The address of the E-Vaskeri API service.",
           "api_key": "Only needed when the API is protected with an API key."
         }
       },
@@ -27,7 +27,7 @@
           "api_key": "API key (optional)"
         },
         "data_description": {
-          "url": "For example http://e-vaskeri-api.default.svc:5000",
+          "url": "The address of the E-Vaskeri API service.",
           "api_key": "Only needed when the API is protected with an API key."
         }
       }

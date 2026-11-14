@@ -9,7 +9,7 @@
           "api_key": "API-nøgle (valgfri)"
         },
         "data_description": {
-          "url": "For eksempel http://e-vaskeri-api.default.svc:5000",
+          "url": "Adressen på E-Vaskeri API-tjenesten.",
           "api_key": "Kun nødvendig, hvis API'et er beskyttet med en API-nøgle."
         }
       },
@@ -27,7 +27,7 @@
           "api_key": "API-nøgle (valgfri)"
         },
         "data_description": {
-          "url": "For eksempel http://e-vaskeri-api.default.svc:5000",
+          "url": "Adressen på E-Vaskeri API-tjenesten.",
           "api_key": "Kun nødvendig, hvis API'et er beskyttet med en API-nøgle."
         }
       }

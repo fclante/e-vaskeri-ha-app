@@ -1,6 +1,6 @@
 [project]
 name = "e-vaskeri-ha-plugin"
-version = "1.0.0"
+version = "1.1.0"
 description = "Home Assistant custom integration for the E-Vaskeri API"
 readme = "README.md"
 requires-python = ">=3.14"

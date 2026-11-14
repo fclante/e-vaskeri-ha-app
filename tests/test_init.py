@@ -129,7 +129,7 @@ async def test_card_registered(hass: HomeAssistant, mock_http_and_frontend: Magi
     assert config.url_path == CARD_URL_PATH
     assert config.path == str(Path(__file__))
     assert config.cache_headers is False
-    mock_http_and_frontend.assert_called_once_with(hass, f"{CARD_URL_PATH}?v=1.0.0")
+    mock_http_and_frontend.assert_called_once_with(hass, f"{CARD_URL_PATH}?v=1.1.0")
 
 
 async def test_card_missing_is_not_fatal(

@@ -311,6 +311,8 @@ Pure logic is in `card/src/logic/*.ts`, components in `card/src/components/*.ts`
   not require a key. After restoring access, submit the key-free retry prompt to reload.
 - **Entities unavailable** – the API or the upstream laundry site is failing; see the Home
   Assistant log for `e_vaskeri` and the API's `/ready` endpoint. Entities recover on the next poll.
+- **Program temperature text** – the card repairs encoding-damaged degree signs in program
+  temperatures, such as `40� Normal` → `40° Normal`; unrelated damaged text is left unchanged.
 - **No dashboard card** – the integration logs a warning if
   `custom_components/e_vaskeri/www/e-vaskeri-card.js` is missing (the card is not built/copied).
 - **Download diagnostics** from the integration page; the URL and any legacy saved API key

@@ -33,6 +33,7 @@ def mock_api(
     statement: dict[str, Any] | None = None,
     extras: dict[str, Any] | None = None,
     legacy_api: bool = False,
+    base_url: str = BASE_URL,
     status: int = 200,
     exc: type[Exception] | None = None,
 ) -> None:
@@ -51,11 +52,11 @@ def mock_api(
     }
     for path, body in responses.items():
         if exc is not None:
-            aioclient_mock.get(f"{BASE_URL}{path}", exc=exc)
+            aioclient_mock.get(f"{base_url}{path}", exc=exc)
         else:
-            aioclient_mock.get(f"{BASE_URL}{path}", json=body, status=status)
+            aioclient_mock.get(f"{base_url}{path}", json=body, status=status)
     for name in ("periods", "calendar", "prices", "messages"):
-        path = f"{BASE_URL}/api/v1/{name}"
+        path = f"{base_url}/api/v1/{name}"
         if exc is not None:
             aioclient_mock.get(path, exc=exc)
         elif legacy_api:
@@ -96,8 +97,18 @@ def mock_config_entry() -> MockConfigEntry:
         domain=DOMAIN,
         title="Example Laundry",
         unique_id=BASE_URL,
-        data={CONF_URL: BASE_URL, CONF_API_KEY: None},
+        data={CONF_URL: BASE_URL},
     )
+
+
+@pytest.fixture
+def legacy_config_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry) -> MockConfigEntry:
+    """Return a registered entry retaining an unused key from an older version."""
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, data={CONF_URL: BASE_URL, CONF_API_KEY: "unused-legacy-key"}
+    )
+    return mock_config_entry
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ from pathlib import Path
 from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, CONF_URL, Platform
+from homeassistant.const import CONF_URL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
@@ -62,9 +62,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: EVaskeriConfigEntry) -> bool:
     """Set up E-Vaskeri from a config entry."""
-    client = EVaskeriClient(
-        async_get_clientsession(hass), entry.data[CONF_URL], entry.data.get(CONF_API_KEY)
-    )
+    client = EVaskeriClient(async_get_clientsession(hass), entry.data[CONF_URL])
     machines = MachinesCoordinator(hass, entry, client)
     account = AccountCoordinator(hass, entry, client)
     await machines.async_config_entry_first_refresh()

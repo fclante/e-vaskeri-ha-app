@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 
 from . import EVaskeriConfigEntry
 
+# Older entries can still contain an unused API key.
 TO_REDACT = {CONF_API_KEY, CONF_URL, "unique_id"}
 # Message texts come from the landlord and are personal, so they are not included in diagnostics.
 ACCOUNT_TO_REDACT = {"body"}

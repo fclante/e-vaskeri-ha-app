@@ -11,7 +11,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlowWithReload,
 )
-from homeassistant.const import CONF_API_KEY, CONF_URL
+from homeassistant.const import CONF_URL
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -20,9 +20,6 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
-    TextSelector,
-    TextSelectorConfig,
-    TextSelectorType,
 )
 import voluptuous as vol
 from yarl import URL
@@ -44,8 +41,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-API_KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
-
 
 class InvalidUrlError(Exception):
     """The supplied base URL is not a valid HTTP(S) URL."""
@@ -65,13 +60,8 @@ def normalize_url(value: str) -> str:
     return str(url.with_query(None).with_fragment(None)).rstrip("/")
 
 
-def _user_schema(url: str | None = None, api_key: str | None = None) -> vol.Schema:
-    return vol.Schema(
-        {
-            vol.Required(CONF_URL, default=url or vol.UNDEFINED): str,
-            vol.Optional(CONF_API_KEY, default=api_key or vol.UNDEFINED): API_KEY_SELECTOR,
-        }
-    )
+def _user_schema(url: str | None = None) -> vol.Schema:
+    return vol.Schema({vol.Required(CONF_URL, default=url or vol.UNDEFINED): str})
 
 
 class EVaskeriConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -85,11 +75,9 @@ class EVaskeriConfigFlow(ConfigFlow, domain=DOMAIN):
         """Return the options flow."""
         return EVaskeriOptionsFlow()
 
-    async def _async_validate(
-        self, url: str, api_key: str | None
-    ) -> tuple[str | None, dict[str, str]]:
-        """Return the location name and form errors for the given credentials."""
-        client = EVaskeriClient(async_get_clientsession(self.hass), url, api_key)
+    async def _async_validate(self, url: str) -> tuple[str | None, dict[str, str]]:
+        """Return the location name and form errors for the given API URL."""
+        client = EVaskeriClient(async_get_clientsession(self.hass), url)
         try:
             await client.async_health()
             machines = await client.async_get_machines()
@@ -113,12 +101,11 @@ class EVaskeriConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 await self.async_set_unique_id(url)
                 self._abort_if_unique_id_configured()
-                api_key = user_input.get(CONF_API_KEY) or None
-                location, errors = await self._async_validate(url, api_key)
+                location, errors = await self._async_validate(url)
                 if not errors:
                     return self.async_create_entry(
                         title=location or DEFAULT_HUB_NAME,
-                        data={CONF_URL: url, CONF_API_KEY: api_key},
+                        data={CONF_URL: url},
                     )
         return self.async_show_form(
             step_id="user",
@@ -127,32 +114,29 @@ class EVaskeriConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
-        """Start reauthentication after the API rejected the key."""
+        """Offer a retry after access to the API was denied."""
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Ask for a new API key."""
+        """Retry access without requesting credentials."""
         entry = self._get_reauth_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
-            api_key = user_input.get(CONF_API_KEY) or None
-            _, errors = await self._async_validate(entry.data[CONF_URL], api_key)
+            _, errors = await self._async_validate(entry.data[CONF_URL])
             if not errors:
-                return self.async_update_reload_and_abort(
-                    entry, data_updates={CONF_API_KEY: api_key}
-                )
+                return self.async_update_reload_and_abort(entry)
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=vol.Schema({vol.Optional(CONF_API_KEY): API_KEY_SELECTOR}),
+            data_schema=vol.Schema({}),
             errors=errors,
         )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Change the base URL or API key."""
+        """Change the base URL."""
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -164,20 +148,16 @@ class EVaskeriConfigFlow(ConfigFlow, domain=DOMAIN):
                 existing = await self.async_set_unique_id(url, raise_on_progress=False)
                 if existing is not None and existing.entry_id != entry.entry_id:
                     return self.async_abort(reason="already_configured")
-                api_key = user_input.get(CONF_API_KEY) or None
-                _, errors = await self._async_validate(url, api_key)
+                _, errors = await self._async_validate(url)
                 if not errors:
                     return self.async_update_reload_and_abort(
                         entry,
                         unique_id=url,
-                        data_updates={CONF_URL: url, CONF_API_KEY: api_key},
+                        data_updates={CONF_URL: url},
                     )
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=_user_schema(
-                (user_input or entry.data)[CONF_URL],
-                (user_input or entry.data).get(CONF_API_KEY),
-            ),
+            data_schema=_user_schema((user_input or entry.data)[CONF_URL]),
             errors=errors,
         )
 

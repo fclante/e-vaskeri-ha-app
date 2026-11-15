@@ -5,42 +5,35 @@
         "title": "Forbind til E-Vaskeri API'et",
         "description": "Indtast adressen på din E-Vaskeri API-tjeneste.",
         "data": {
-          "url": "API-adresse",
-          "api_key": "API-nøgle (valgfri)"
+          "url": "API-adresse"
         },
         "data_description": {
-          "url": "Adressen på E-Vaskeri API-tjenesten.",
-          "api_key": "Kun nødvendig, hvis API'et er beskyttet med en API-nøgle."
+          "url": "Adressen på E-Vaskeri API-tjenesten."
         }
       },
       "reauth_confirm": {
-        "title": "Godkend E-Vaskeri igen",
-        "description": "API'et afviste API-nøglen. Indtast en gyldig nøgle.",
-        "data": {
-          "api_key": "API-nøgle"
-        }
+        "title": "Prøv adgangen til E-Vaskeri API'et igen",
+        "description": "Adgangen til API'et blev afvist. Kontrollér API-tjenesten og en eventuel reverse proxy, og indsend derefter for at prøve igen. Der kræves ingen API-nøgle."
       },
       "reconfigure": {
         "title": "Omkonfigurer E-Vaskeri",
         "data": {
-          "url": "API-adresse",
-          "api_key": "API-nøgle (valgfri)"
+          "url": "API-adresse"
         },
         "data_description": {
-          "url": "Adressen på E-Vaskeri API-tjenesten.",
-          "api_key": "Kun nødvendig, hvis API'et er beskyttet med en API-nøgle."
+          "url": "Adressen på E-Vaskeri API-tjenesten."
         }
       }
     },
     "error": {
       "cannot_connect": "Kunne ikke forbinde til API'et",
-      "invalid_auth": "Ugyldig API-nøgle",
+      "invalid_auth": "Adgangen til API'et blev afvist",
       "invalid_url": "Indtast en gyldig http://- eller https://-adresse",
       "unknown": "Uventet fejl"
     },
     "abort": {
       "already_configured": "Dette API er allerede konfigureret",
-      "reauth_successful": "Godkendelsen lykkedes",
+      "reauth_successful": "Adgangen til API'et er genoprettet",
       "reconfigure_successful": "Omkonfigureringen lykkedes"
     }
   },

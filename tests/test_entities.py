@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -294,10 +295,15 @@ async def test_no_event_for_other_transitions(
 
 
 async def test_diagnostics(hass: HomeAssistant, init_integration: MockConfigEntry) -> None:
-    """Diagnostics redact the URL and API key."""
+    """Diagnostics still redact legacy keys retained in older entries."""
+    hass.config_entries.async_update_entry(
+        init_integration, data={**init_integration.data, CONF_API_KEY: "unused-legacy-key"}
+    )
     data = await async_get_config_entry_diagnostics(hass, init_integration)
 
     assert data["entry"]["data"]["url"] == "**REDACTED**"
+    assert data["entry"]["data"][CONF_API_KEY] == "**REDACTED**"
+    assert "unused-legacy-key" not in str(data)
     assert BASE_URL not in str(data)
     assert len(data["machines"]["machines"]) == 12
     assert data["account"]["balance"]["balance_dkk"] == 25.0

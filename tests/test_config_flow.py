@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import aiohttp
 from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_RECONFIGURE, SOURCE_USER
-from homeassistant.const import CONF_API_KEY, CONF_URL
+from homeassistant.const import CONF_URL
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
@@ -26,6 +26,7 @@ async def test_user_flow_success(hass: HomeAssistant, aioclient_mock: AiohttpCli
     mock_api(aioclient_mock)
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     assert result["type"] is FlowResultType.FORM
+    assert set(result["data_schema"].schema) == {CONF_URL}
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_URL: f"{BASE_URL}/ "}
@@ -33,8 +34,9 @@ async def test_user_flow_success(hass: HomeAssistant, aioclient_mock: AiohttpCli
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Example Laundry"
-    assert result["data"] == {CONF_URL: BASE_URL, CONF_API_KEY: None}
+    assert result["data"] == {CONF_URL: BASE_URL}
     assert result["result"].unique_id == BASE_URL
+    assert all("X-API-Key" not in (call[3] or {}) for call in aioclient_mock.mock_calls)
 
 
 @pytest.mark.parametrize(
@@ -44,6 +46,7 @@ async def test_user_flow_success(hass: HomeAssistant, aioclient_mock: AiohttpCli
         ({"status": 500}, "cannot_connect"),
         ({"exc": TimeoutError}, "cannot_connect"),
         ({"status": 401}, "invalid_auth"),
+        ({"status": 403}, "invalid_auth"),
         ({"exc": RuntimeError}, "unknown"),
     ],
 )
@@ -63,20 +66,6 @@ async def test_user_flow_errors_then_recovery(
     mock_api(aioclient_mock)
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_URL: BASE_URL})
     assert result["type"] is FlowResultType.CREATE_ENTRY
-
-
-async def test_user_flow_sends_api_key(
-    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
-) -> None:
-    """The API key is sent as X-API-Key header."""
-    mock_api(aioclient_mock)
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_URL: BASE_URL, CONF_API_KEY: "secret"}
-    )
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["data"][CONF_API_KEY] == "secret"
-    assert all(call[3]["X-API-Key"] == "secret" for call in aioclient_mock.mock_calls)
 
 
 async def test_user_flow_invalid_url(hass: HomeAssistant) -> None:
@@ -102,45 +91,67 @@ async def test_user_flow_duplicate(
     assert result["reason"] == "already_configured"
 
 
+@pytest.mark.parametrize("status", [401, 403])
 async def test_reauth_flow(
     hass: HomeAssistant,
-    mock_config_entry: MockConfigEntry,
+    legacy_config_entry: MockConfigEntry,
     aioclient_mock: AiohttpClientMocker,
+    status: int,
 ) -> None:
-    """A new API key can be supplied after the API rejected the old one."""
-    mock_api(aioclient_mock)
-    mock_config_entry.add_to_hass(hass)
-    result = await mock_config_entry.start_reauth_flow(hass)
+    """Denied access can be retried without asking for or modifying a legacy key."""
+    original_data = dict(legacy_config_entry.data)
+    mock_api(aioclient_mock, status=status)
+    result = await legacy_config_entry.start_reauth_flow(hass)
     assert result["step_id"] == "reauth_confirm"
+    assert not result["data_schema"].schema
     assert hass.config_entries.flow.async_progress()[0]["context"]["source"] == SOURCE_REAUTH
 
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_API_KEY: "new-key"}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_auth"}
+    assert dict(legacy_config_entry.data) == original_data
+    assert all("X-API-Key" not in (call[3] or {}) for call in aioclient_mock.mock_calls)
+
+    mock_api(aioclient_mock)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
-    assert mock_config_entry.data[CONF_API_KEY] == "new-key"
+    assert dict(legacy_config_entry.data) == original_data
+    assert all("X-API-Key" not in (call[3] or {}) for call in aioclient_mock.mock_calls)
 
 
 async def test_reconfigure_flow(
     hass: HomeAssistant,
-    mock_config_entry: MockConfigEntry,
+    legacy_config_entry: MockConfigEntry,
     aioclient_mock: AiohttpClientMocker,
 ) -> None:
-    """The URL and unique id can be changed."""
-    mock_api(aioclient_mock)
-    mock_config_entry.add_to_hass(hass)
-    result = await mock_config_entry.start_reconfigure_flow(hass)
+    """URL-only reconfiguration preserves legacy data and polling options."""
+    new_url = f"{BASE_URL}/api-proxy"
+    mock_api(aioclient_mock, base_url=new_url)
+    options = {
+        CONF_MACHINES_INTERVAL: 15,
+        CONF_ACCOUNT_INTERVAL: 120,
+        CONF_OPENING_HOURS: SCHEDULE_ENTITY_ID,
+    }
+    hass.config_entries.async_update_entry(legacy_config_entry, options=options)
+    original_data = dict(legacy_config_entry.data)
+    result = await legacy_config_entry.start_reconfigure_flow(hass)
     assert result["step_id"] == SOURCE_RECONFIGURE
+    assert set(result["data_schema"].schema) == {CONF_URL}
 
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_URL: BASE_URL, CONF_API_KEY: "k"}
+        result["flow_id"], {CONF_URL: f"{new_url}/"}
     )
+    await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
-    assert mock_config_entry.data[CONF_API_KEY] == "k"
+    assert dict(legacy_config_entry.data) == {**original_data, CONF_URL: new_url}
+    assert legacy_config_entry.unique_id == new_url
+    assert legacy_config_entry.options == options
+    assert all("X-API-Key" not in (call[3] or {}) for call in aioclient_mock.mock_calls)
 
 
 async def test_options_flow(hass: HomeAssistant, init_integration: MockConfigEntry) -> None:

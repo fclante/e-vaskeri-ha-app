@@ -5,42 +5,35 @@
         "title": "Connect to the E-Vaskeri API",
         "description": "Enter the address of your E-Vaskeri API service.",
         "data": {
-          "url": "API base URL",
-          "api_key": "API key (optional)"
+          "url": "API base URL"
         },
         "data_description": {
-          "url": "The address of the E-Vaskeri API service.",
-          "api_key": "Only needed when the API is protected with an API key."
+          "url": "The address of the E-Vaskeri API service."
         }
       },
       "reauth_confirm": {
-        "title": "Re-authenticate E-Vaskeri",
-        "description": "The API rejected the API key. Enter a valid key.",
-        "data": {
-          "api_key": "API key"
-        }
+        "title": "Retry E-Vaskeri API access",
+        "description": "Access to the API was denied. Check the API service and any reverse proxy, then submit to retry. No API key is required."
       },
       "reconfigure": {
         "title": "Reconfigure E-Vaskeri",
         "data": {
-          "url": "API base URL",
-          "api_key": "API key (optional)"
+          "url": "API base URL"
         },
         "data_description": {
-          "url": "The address of the E-Vaskeri API service.",
-          "api_key": "Only needed when the API is protected with an API key."
+          "url": "The address of the E-Vaskeri API service."
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to the API",
-      "invalid_auth": "Invalid API key",
+      "invalid_auth": "Access to the API was denied",
       "invalid_url": "Enter a valid http:// or https:// address",
       "unknown": "Unexpected error"
     },
     "abort": {
       "already_configured": "This API is already configured",
-      "reauth_successful": "Re-authentication was successful",
+      "reauth_successful": "API access was restored",
       "reconfigure_successful": "Reconfiguration was successful"
     }
   },

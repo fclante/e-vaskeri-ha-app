@@ -20,32 +20,24 @@ class EVaskeriConnectionError(EVaskeriError):
 
 
 class EVaskeriAuthError(EVaskeriError):
-    """The API rejected the supplied API key."""
+    """Access to the API was denied."""
 
 
 class EVaskeriClient:
     """Thin wrapper around the E-Vaskeri API."""
 
-    def __init__(
-        self,
-        session: aiohttp.ClientSession,
-        base_url: str,
-        api_key: str | None = None,
-    ) -> None:
+    def __init__(self, session: aiohttp.ClientSession, base_url: str) -> None:
         """Initialize the client."""
         self._session = session
         self._base_url = base_url.rstrip("/")
-        self._headers = {"X-API-Key": api_key} if api_key else {}
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         try:
             async with asyncio.timeout(REQUEST_TIMEOUT):
-                response = await self._session.get(
-                    f"{self._base_url}{path}", headers=self._headers, params=params
-                )
+                response = await self._session.get(f"{self._base_url}{path}", params=params)
                 async with response:
                     if response.status in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
-                        raise EVaskeriAuthError(f"Authentication failed ({response.status})")
+                        raise EVaskeriAuthError(f"API access denied ({response.status})")
                     response.raise_for_status()
                     return await response.json()
         except EVaskeriError:

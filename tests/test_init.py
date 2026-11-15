@@ -101,6 +101,7 @@ async def test_unavailable_when_api_fails(
     [
         ({"exc": aiohttp.ClientError}, ConfigEntryState.SETUP_RETRY),
         ({"status": 401}, ConfigEntryState.SETUP_ERROR),
+        ({"status": 403}, ConfigEntryState.SETUP_ERROR),
     ],
 )
 async def test_setup_failures(
@@ -110,7 +111,7 @@ async def test_setup_failures(
     kwargs: dict,
     state: ConfigEntryState,
 ) -> None:
-    """Connection errors retry setup; a rejected key starts reauth."""
+    """Connection errors retry setup; denied access starts key-free recovery."""
     mock_api(aioclient_mock, **kwargs)
     mock_config_entry.add_to_hass(hass)
 
@@ -119,7 +120,31 @@ async def test_setup_failures(
 
     assert mock_config_entry.state is state
     if state is ConfigEntryState.SETUP_ERROR:
-        assert any(hass.config_entries.flow.async_progress_by_handler(DOMAIN))
+        flow = hass.config_entries.flow.async_progress_by_handler(DOMAIN)[0]
+        result = await hass.config_entries.flow.async_configure(flow["flow_id"])
+        assert result["step_id"] == "reauth_confirm"
+        assert not result["data_schema"].schema
+
+
+async def test_legacy_api_key_is_unused(
+    hass: HomeAssistant,
+    legacy_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Old saved keys are preserved but never sent during setup or either polling stream."""
+    original_data = dict(legacy_config_entry.data)
+    mock_api(aioclient_mock)
+    await hass.config_entries.async_setup(legacy_config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert legacy_config_entry.state is ConfigEntryState.LOADED
+    assert len(aioclient_mock.mock_calls) == 8
+    assert all("X-API-Key" not in (call[3] or {}) for call in aioclient_mock.mock_calls)
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=601))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 16
+    assert all("X-API-Key" not in (call[3] or {}) for call in aioclient_mock.mock_calls)
+    assert dict(legacy_config_entry.data) == original_data
 
 
 async def test_card_registered(hass: HomeAssistant, mock_http_and_frontend: MagicMock) -> None:

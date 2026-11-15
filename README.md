@@ -72,9 +72,40 @@ re-authentication prompt if the API starts rejecting the key.
 | --- | --- | --- |
 | Machines poll interval | 30 s | 10 s |
 | Account poll interval (balance, statement, stats, periods, prices, messages, calendar) | 600 s | 60 s |
+| Opening-hours schedule | None (24/7 polling) | — |
 
 The API itself refreshes machines about every 20 s and account data about every 10 minutes, so
 polling faster brings no benefit.
+
+### Opening hours
+
+To pause requests when your laundry is closed:
+
+1. In **Settings → Devices & services → Helpers**, create a **Schedule** helper.
+2. Set its active periods to the laundry's opening hours. Different weekdays and multiple
+   periods per day are supported. For overnight hours, split the period across adjacent days.
+   The helper uses Home Assistant's configured time zone and handles daylight-saving changes.
+3. In the E-Vaskeri integration's **Configure** dialog, select this helper under
+   **Opening-hours schedule**. Each integration entry can use its own helper.
+
+Leave the selection empty, or clear it later, for continuous 24/7 polling.
+While the schedule is off, both machine and account polling pause, including manual entity
+refreshes. Last known data remains visible but becomes stale; the card may show its existing
+stale-data warning. Requests already in flight are allowed to finish.
+
+Setup and reload still perform an initial refresh of both data groups, even while closed,
+and failed setup retains Home Assistant's normal retry behavior. Opening immediately refreshes
+both groups and resumes their configured intervals, unless automatic polling is disabled in
+Home Assistant. Cycle-finished notifications are not inferred across a closed period: detection
+resumes after the first successful machine refresh.
+
+If a selected helper is missing, unknown or unavailable, polling pauses and a warning is logged.
+Restore the helper to resume polling during its active periods, or clear the selection for 24/7
+operation.
+
+**This only controls requests from Home Assistant to your API instance.** The separate
+E-Vaskeri API service may continue polling e-vaskeri.dk independently; this option does not
+change that service's upstream polling.
 
 ## Devices and entities
 

@@ -3,6 +3,8 @@ import { discoverEntities, readAccount, readMachines } from '../src/logic/data';
 import { ACCOUNT_ENTITY, MACHINES_ENTITY, buildHass, createModel, setMachineState } from '../dev/mock';
 import '../src/index';
 import type { EVaskeriCard } from '../src/e-vaskeri-card';
+import type { EvMachineTile } from '../src/components/ev-machine-tile';
+import type { EvMachines } from '../src/components/ev-machines';
 
 const NOW = Date.parse('2026-11-13T21:50:00Z');
 
@@ -43,6 +45,20 @@ describe('attribute parsing', () => {
     expect(ov.machines.find((m) => m.id === 3)?.entity_id).toBe('sensor.vaskemaskine_3_status');
     expect(ov.summary.by_type.washer).toEqual({ total: 8, free: 6, busy: 1 });
     expect(ov.summary.next_free?.id).toBe(10);
+  });
+  it.each([
+    ['40\uFFFD Normal', '40° Normal'],
+    ['60\uFFFD Normal', '60° Normal'],
+    ['60\uFFFD', '60°'],
+    ['Program 15, ExtraTørt, 70\uFFFDC', 'Program 15, ExtraTørt, 70°C'],
+    ['95Â° Normal', '95° Normal'],
+    ['40° Mild', '40° Mild'],
+    ['Program \uFFFD', 'Program \uFFFD'],
+  ])('normalises program temperature in %s', (program, expected) => {
+    const model = createModel(NOW);
+    model.machines.find((m) => m.id === 3)!.program = program;
+    const ov = readMachines(buildHass(model, { now: NOW }), MACHINES_ENTITY)!;
+    expect(ov.machines.find((m) => m.id === 3)?.program).toBe(expected);
   });
   it('marks unavailable entities', () => {
     const off = buildHass(createModel(NOW), { now: NOW, unavailable: true });
@@ -100,6 +116,22 @@ describe('<e-vaskeri-card>', () => {
     const machines = q('ev-machines')!;
     await (machines as unknown as { updateComplete: Promise<boolean> }).updateComplete;
     expect(machines.shadowRoot!.querySelectorAll('ev-machine-tile')).toHaveLength(12);
+  });
+
+  it('renders the degree sign in a damaged program label and its tooltip', async () => {
+    const now = Date.now();
+    const model = createModel(now);
+    model.machines.find((m) => m.id === 3)!.program = '40\uFFFD Normal';
+    await mount(buildHass(model, { now }));
+    const machines = q('ev-machines') as EvMachines;
+    await machines.updateComplete;
+    const tiles = Array.from(machines.shadowRoot!.querySelectorAll<EvMachineTile>('ev-machine-tile'));
+    const tile = tiles.find((item) => item.machine.id === 3)!;
+    await tile.updateComplete;
+    const label = tile.shadowRoot!.querySelector('.prog-line')!;
+    expect(label.textContent).toContain('40° Normal');
+    expect(label.getAttribute('title')).toContain('40° Normal');
+    expect(label.textContent).not.toContain('\uFFFD');
   });
 
   it('honours show and compact', async () => {

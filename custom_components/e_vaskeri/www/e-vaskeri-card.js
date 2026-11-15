@@ -881,7 +881,8 @@ function ls(e) {
     type: s,
     state: n,
     raw_status: r(e.raw_status),
-    program: r(e.program),
+    // Upstream text may have lost the degree sign before reaching Home Assistant.
+    program: r(e.program)?.replace(/\b(\d{1,3})\uFFFD(?=C\b|\s|$)/g, "$1°") ?? null,
     step: r(e.step),
     remaining_seconds: m(e.remaining_seconds),
     ends_at: $(e.ends_at),

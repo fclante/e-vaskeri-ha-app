@@ -57,7 +57,8 @@ function parseMachine(raw: unknown): Machine | null {
     type,
     state,
     raw_status: clean(raw.raw_status),
-    program: clean(raw.program),
+    // Upstream text may have lost the degree sign before reaching Home Assistant.
+    program: clean(raw.program)?.replace(/\b(\d{1,3})\uFFFD(?=C\b|\s|$)/g, '$1°') ?? null,
     step: clean(raw.step),
     remaining_seconds: num(raw.remaining_seconds),
     ends_at: str(raw.ends_at),

@@ -10,6 +10,7 @@ DEFAULT_HUB_NAME: Final = "E-Vaskeri"
 
 CONF_MACHINES_INTERVAL: Final = "machines_interval"
 CONF_ACCOUNT_INTERVAL: Final = "account_interval"
+CONF_OPENING_HOURS: Final = "opening_hours"
 
 DEFAULT_MACHINES_INTERVAL: Final = 30
 MIN_MACHINES_INTERVAL: Final = 10

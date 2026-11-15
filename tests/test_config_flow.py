@@ -14,10 +14,11 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 from custom_components.e_vaskeri.const import (
     CONF_ACCOUNT_INTERVAL,
     CONF_MACHINES_INTERVAL,
+    CONF_OPENING_HOURS,
     DOMAIN,
 )
 
-from .conftest import BASE_URL, mock_api
+from .conftest import BASE_URL, SCHEDULE_ENTITY_ID, mock_api
 
 
 async def test_user_flow_success(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
@@ -161,3 +162,36 @@ async def test_options_flow(hass: HomeAssistant, init_integration: MockConfigEnt
     runtime_data = init_integration.runtime_data
     assert runtime_data.machines.update_interval.total_seconds() == 15
     assert runtime_data.account.update_interval.total_seconds() == 120
+
+
+async def test_opening_hours_options(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """A schedule can be selected, changed and cleared without converting its ID to int."""
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+    hass.states.async_set("schedule.other_laundry", "on")
+    for schedule in (SCHEDULE_ENTITY_ID, "schedule.other_laundry", None):
+        result = await hass.config_entries.options.async_init(init_integration.entry_id)
+        schema = result["data_schema"].schema
+        selector = next(value for key, value in schema.items() if key == CONF_OPENING_HOURS)
+        assert selector.config["domain"] == ["schedule"]
+        user_input: dict[str, float | str] = {
+            CONF_MACHINES_INTERVAL: 15.0,
+            CONF_ACCOUNT_INTERVAL: 120.0,
+        }
+        if schedule is not None:
+            user_input[CONF_OPENING_HOURS] = schedule
+        result = await hass.config_entries.options.async_configure(result["flow_id"], user_input)
+        await hass.async_block_till_done()
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert init_integration.options.get(CONF_OPENING_HOURS) == schedule
+        assert init_integration.options[CONF_MACHINES_INTERVAL] == 15
+        assert init_integration.options[CONF_ACCOUNT_INTERVAL] == 120
+        runtime = init_integration.runtime_data
+        if schedule == SCHEDULE_ENTITY_ID:
+            assert runtime.machines.update_interval is None
+            assert runtime.account.update_interval is None
+        else:
+            assert runtime.machines.update_interval.total_seconds() == 15
+            assert runtime.account.update_interval.total_seconds() == 120

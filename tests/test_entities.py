@@ -19,7 +19,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 from custom_components.e_vaskeri.const import DOMAIN, EVENT_CYCLE_FINISHED
 from custom_components.e_vaskeri.diagnostics import async_get_config_entry_diagnostics
 
-from .conftest import BASE_URL, load_sample, machines_with_state, mock_api
+from .conftest import BASE_URL, SCHEDULE_ENTITY_ID, load_sample, machines_with_state, mock_api
 
 HUB = "example_laundry"
 
@@ -177,6 +177,40 @@ async def test_cycle_finished_event(
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=62))
     await hass.async_block_till_done()
     assert len(bus_events) == 1
+
+
+@pytest.mark.parametrize("failed_reopening", [False, True])
+async def test_no_cycle_events_across_closed_period(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    failed_reopening: bool,
+) -> None:
+    """Only transitions observed after the first successful reopening fetch emit events."""
+    events = async_capture_events(hass, EVENT_CYCLE_FINISHED)
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+    await hass.async_block_till_done()
+    if failed_reopening:
+        mock_api(aioclient_mock, status=500)
+    else:
+        mock_api(aioclient_mock, machines=machines_with_state(3, state="free"))
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+    await hass.async_block_till_done(wait_background_tasks=True)
+    coordinator = scheduled_integration.runtime_data.machines
+    if failed_reopening:
+        assert not coordinator.last_update_success
+        mock_api(aioclient_mock, machines=machines_with_state(3, state="free"))
+        await coordinator.async_refresh()
+    assert events == []
+    assert hass.states.get("sensor.vaskemaskine_3_status").state == "free"
+
+    mock_api(aioclient_mock, machines=machines_with_state(3, state="busy"))
+    await coordinator.async_refresh()
+    mock_api(aioclient_mock, machines=machines_with_state(3, state="free"))
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert len(events) == 1
+    assert events[0].data["machine_id"] == 3
 
 
 def statement_with_usage(machine_id: int, started: datetime) -> dict:

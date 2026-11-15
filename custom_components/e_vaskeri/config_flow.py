@@ -15,6 +15,8 @@ from homeassistant.const import CONF_API_KEY, CONF_URL
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -30,6 +32,7 @@ from .api import EVaskeriAuthError, EVaskeriClient, EVaskeriConnectionError
 from .const import (
     CONF_ACCOUNT_INTERVAL,
     CONF_MACHINES_INTERVAL,
+    CONF_OPENING_HOURS,
     DEFAULT_ACCOUNT_INTERVAL,
     DEFAULT_HUB_NAME,
     DEFAULT_MACHINES_INTERVAL,
@@ -185,9 +188,12 @@ class EVaskeriOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manage the polling intervals."""
         if user_input is not None:
-            return self.async_create_entry(
-                data={key: int(value) for key, value in user_input.items()}
-            )
+            new_options: dict[str, Any] = {
+                key: int(user_input[key]) for key in (CONF_MACHINES_INTERVAL, CONF_ACCOUNT_INTERVAL)
+            }
+            if schedule := user_input.get(CONF_OPENING_HOURS):
+                new_options[CONF_OPENING_HOURS] = schedule
+            return self.async_create_entry(data=new_options)
         options = self.config_entry.options
         return self.async_show_form(
             step_id="init",
@@ -201,6 +207,10 @@ class EVaskeriOptionsFlow(OptionsFlowWithReload):
                         CONF_ACCOUNT_INTERVAL,
                         default=options.get(CONF_ACCOUNT_INTERVAL, DEFAULT_ACCOUNT_INTERVAL),
                     ): _interval_selector(MIN_ACCOUNT_INTERVAL),
+                    vol.Optional(
+                        CONF_OPENING_HOURS,
+                        description={"suggested_value": options.get(CONF_OPENING_HOURS)},
+                    ): EntitySelector(EntitySelectorConfig(domain="schedule")),
                 }
             ),
         )

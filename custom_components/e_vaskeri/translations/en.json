@@ -47,14 +47,16 @@
   "options": {
     "step": {
       "init": {
-        "title": "Polling intervals",
+        "title": "Polling and opening hours",
         "data": {
           "machines_interval": "Machines poll interval",
-          "account_interval": "Account poll interval"
+          "account_interval": "Account poll interval",
+          "opening_hours": "Opening-hours schedule (optional)"
         },
         "data_description": {
           "machines_interval": "Seconds between machine status updates (minimum 10).",
-          "account_interval": "Seconds between balance, statement and statistics updates (minimum 60)."
+          "account_interval": "Seconds between balance, statement and statistics updates (minimum 60).",
+          "opening_hours": "Select a Schedule helper created in Settings > Devices & services > Helpers. Leave empty for 24/7 polling. Both polling streams pause outside its active periods; setup/reload still fetches initial data."
         }
       }
     }

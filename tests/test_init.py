@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -16,13 +17,14 @@ from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
+    async_capture_events,
     async_fire_time_changed,
 )
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
-from custom_components.e_vaskeri.const import CARD_URL_PATH, DOMAIN
+from custom_components.e_vaskeri.const import CARD_URL_PATH, DOMAIN, EVENT_CYCLE_FINISHED
 
-from .conftest import machines_with_state, mock_api
+from .conftest import SCHEDULE_ENTITY_ID, machines_with_state, mock_api
 
 
 async def test_setup_and_unload(hass: HomeAssistant, init_integration: MockConfigEntry) -> None:
@@ -144,3 +146,228 @@ async def test_card_missing_is_not_fatal(
     assert "Dashboard card" in caplog.text
     hass.http.async_register_static_paths.assert_not_called()
     mock_http_and_frontend.assert_not_called()
+
+
+@pytest.mark.parametrize("schedule_state", ["off", None, "unknown", "unavailable"])
+async def test_closed_schedule_pauses_requests(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    caplog: pytest.LogCaptureFixture,
+    schedule_state: str | None,
+) -> None:
+    """Initial data is loaded but timers and manual updates never fetch while paused."""
+    assert scheduled_integration.state is ConfigEntryState.LOADED
+    assert len(aioclient_mock.mock_calls) == 8
+    runtime = scheduled_integration.runtime_data
+    machines, account = runtime.machines.data, runtime.account.data
+    state = hass.states.get("sensor.example_laundry_machines_overview")
+    assert state.state != STATE_UNAVAILABLE
+
+    for seconds in (601, 1202):
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=seconds))
+        await hass.async_block_till_done(wait_background_tasks=True)
+    for coordinator in (runtime.machines, runtime.account):
+        await coordinator.async_refresh()
+        await coordinator.async_request_refresh()
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert len(aioclient_mock.mock_calls) == 8
+    assert runtime.machines.data is machines
+    assert runtime.account.data is account
+    assert hass.states.get(state.entity_id) is state
+    warnings = [
+        record
+        for phase in ("setup", "call")
+        for record in caplog.get_records(phase)
+        if "polling is paused" in record.message
+    ]
+    assert len(warnings) == (0 if schedule_state == "off" else 1)
+
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 16
+    assert runtime.machines.update_interval.total_seconds() == 30
+    assert runtime.account.update_interval.total_seconds() == 600
+
+
+async def test_schedule_transitions_and_polling(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Opening refreshes once, then both streams resume their usual intervals."""
+    assert len(aioclient_mock.mock_calls) == 8
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 9
+
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1202))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 9
+
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 17
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on", {"next_event": "changed"})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 17
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 18
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=601))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 26
+
+
+async def test_schedule_unload_and_reload(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Reloads leave one listener per entry and unloading removes it entirely."""
+    await hass.config_entries.async_reload(scheduled_integration.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 16
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+    await hass.async_block_till_done()
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 24
+
+    await hass.config_entries.async_unload(scheduled_integration.entry_id)
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+    await hass.async_block_till_done()
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1202))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 24
+
+
+async def test_schedule_becomes_unavailable(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A missing helper pauses polling, warns once and recovers when recreated."""
+    hass.states.async_remove(SCHEDULE_ENTITY_ID)
+    await hass.async_block_till_done()
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "unavailable")
+    await hass.async_block_till_done()
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "unknown")
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1202))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 8
+    assert caplog.text.count("polling is paused") == 1
+
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == 16
+
+
+async def test_schedule_respects_disabled_polling(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Schedule opening must not bypass HA's disabled-polling preference."""
+    hass.config_entries.async_update_entry(scheduled_integration, pref_disable_polling=True)
+    await hass.async_block_till_done()
+    count = len(aioclient_mock.mock_calls)
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+    await hass.async_block_till_done()
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=1202))
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(aioclient_mock.mock_calls) == count
+
+
+async def test_closed_schedule_preserves_api_failure(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Skipping a request must not turn a failed update into a successful one."""
+    coordinator = scheduled_integration.runtime_data.machines
+    mock_api(aioclient_mock, exc=aiohttp.ClientError)
+    await coordinator.async_refresh()
+    assert not coordinator.last_update_success
+    hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+    await hass.async_block_till_done()
+    await coordinator.async_refresh()
+    assert not coordinator.last_update_success
+    assert len(aioclient_mock.mock_calls) == 1
+    assert hass.states.get("sensor.vaskemaskine_3_status").state == STATE_UNAVAILABLE
+
+
+async def test_queued_refresh_respects_closing(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """An in-flight fetch may finish but a refresh waiting on its lock must not fetch."""
+    coordinator = scheduled_integration.runtime_data.machines
+    started, release = asyncio.Event(), asyncio.Event()
+    original_fetch = coordinator.client.async_get_machines
+
+    async def delayed_fetch() -> dict:
+        data = await original_fetch()
+        started.set()
+        await release.wait()
+        return data
+
+    with patch.object(coordinator.client, "async_get_machines", side_effect=delayed_fetch):
+        active = scheduled_integration.async_create_background_task(
+            hass, coordinator.async_refresh(), "in-flight refresh"
+        )
+        await started.wait()
+        queued = scheduled_integration.async_create_background_task(
+            hass, coordinator.async_refresh(), "queued refresh"
+        )
+        hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+        await hass.async_block_till_done()
+        release.set()
+        await asyncio.gather(active, queued)
+
+    assert len(aioclient_mock.mock_calls) == 9
+    assert coordinator.update_interval is None
+
+
+async def test_in_flight_fetch_is_not_reopening_baseline(
+    hass: HomeAssistant,
+    scheduled_integration: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Pre-closing data arriving after reopening must not enable delayed cycle events."""
+    coordinator = scheduled_integration.runtime_data.machines
+    events = async_capture_events(hass, EVENT_CYCLE_FINISHED)
+    started, release = asyncio.Event(), asyncio.Event()
+    original_fetch = coordinator.client.async_get_machines
+
+    async def delayed_fetch() -> dict:
+        data = await original_fetch()
+        started.set()
+        await release.wait()
+        return data
+
+    with patch.object(coordinator.client, "async_get_machines", side_effect=delayed_fetch):
+        active = scheduled_integration.async_create_background_task(
+            hass, coordinator.async_refresh(), "in-flight refresh"
+        )
+        await started.wait()
+        hass.states.async_set(SCHEDULE_ENTITY_ID, "off")
+        await hass.async_block_till_done()
+        mock_api(aioclient_mock, machines=machines_with_state(3, state="free"))
+        hass.states.async_set(SCHEDULE_ENTITY_ID, "on")
+        await hass.async_block_till_done()
+        release.set()
+        await active
+        await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert events == []
+    assert hass.states.get("sensor.vaskemaskine_3_status").state == "free"

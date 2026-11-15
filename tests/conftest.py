@@ -14,10 +14,11 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, mock_component
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
-from custom_components.e_vaskeri.const import DOMAIN
+from custom_components.e_vaskeri.const import CONF_OPENING_HOURS, DOMAIN
 
 BASE_URL = "http://e-vaskeri.test:5000"
 SAMPLE_DIR = Path(__file__).parent.parent / "sample_data"
+SCHEDULE_ENTITY_ID = "schedule.laundry"
 
 
 def load_sample(name: str) -> dict[str, Any]:
@@ -108,6 +109,32 @@ async def init_integration(
     """Set up the integration against the sample API."""
     mock_api(aioclient_mock)
     mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+    return mock_config_entry
+
+
+@pytest.fixture
+def schedule_state() -> str | None:
+    """Default to an open laundry."""
+    return "on"
+
+
+@pytest.fixture
+async def scheduled_integration(
+    hass: HomeAssistant,
+    mock_config_entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+    schedule_state: str | None,
+) -> MockConfigEntry:
+    """Set up an entry with an opening-hours helper."""
+    if schedule_state is not None:
+        hass.states.async_set(SCHEDULE_ENTITY_ID, schedule_state)
+    mock_config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(
+        mock_config_entry, options={CONF_OPENING_HOURS: SCHEDULE_ENTITY_ID}
+    )
+    mock_api(aioclient_mock)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
     return mock_config_entry

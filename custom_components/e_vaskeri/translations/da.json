@@ -47,14 +47,16 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opdateringsintervaller",
+        "title": "Opdateringer og åbningstider",
         "data": {
           "machines_interval": "Opdateringsinterval for maskiner",
-          "account_interval": "Opdateringsinterval for konto"
+          "account_interval": "Opdateringsinterval for konto",
+          "opening_hours": "Tidsplan for åbningstider (valgfri)"
         },
         "data_description": {
           "machines_interval": "Sekunder mellem opdateringer af maskinstatus (mindst 10).",
-          "account_interval": "Sekunder mellem opdateringer af saldo, kontoudtog og statistik (mindst 60)."
+          "account_interval": "Sekunder mellem opdateringer af saldo, kontoudtog og statistik (mindst 60).",
+          "opening_hours": "Vælg en tidsplan oprettet under Indstillinger > Enheder og tjenester > Hjælpere. Lad feltet være tomt for opdatering døgnet rundt. Begge opdateringer sættes på pause uden for tidsplanen; opsætning/genindlæsning henter stadig startdata."
         }
       }
     }

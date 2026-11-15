@@ -9,9 +9,11 @@ from datetime import datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -19,6 +21,7 @@ from .api import EVaskeriAuthError, EVaskeriClient, EVaskeriError
 from .const import (
     CONF_ACCOUNT_INTERVAL,
     CONF_MACHINES_INTERVAL,
+    CONF_OPENING_HOURS,
     DEFAULT_ACCOUNT_INTERVAL,
     DEFAULT_MACHINES_INTERVAL,
     DOMAIN,
@@ -43,6 +46,53 @@ type CycleFinishedListener = Callable[[dict[str, Any]], None]
 OWNERSHIP_GRACE = timedelta(minutes=5)
 # How far back to look for a cycle that was already running when Home Assistant started.
 MAX_UNOBSERVED_CYCLE = timedelta(hours=4)
+
+
+@callback
+def async_setup_opening_hours(
+    hass: HomeAssistant,
+    entry: EVaskeriConfigEntry,
+    coordinators: tuple[MachinesCoordinator, AccountCoordinator],
+) -> None:
+    """Apply the optional schedule after the initial data has been fetched."""
+    if not (schedule := entry.options.get(CONF_OPENING_HOURS)):
+        return
+
+    was_open: bool | None = None
+    warned = False
+
+    @callback
+    def apply_schedule() -> None:
+        nonlocal was_open, warned
+        state = hass.states.get(schedule)
+        usable = state is not None and state.state in (STATE_ON, STATE_OFF)
+        if not usable and not warned:
+            _LOGGER.warning(
+                "Opening-hours schedule %s is missing or unavailable; polling is paused. "
+                "Restore the helper or clear it in the E-Vaskeri options",
+                schedule,
+            )
+        warned = not usable
+        is_open = state is not None and state.state == STATE_ON
+        if is_open == was_open:
+            return
+        refresh = was_open is False and is_open and not entry.pref_disable_polling
+        was_open = is_open
+        for coordinator in coordinators:
+            coordinator.async_set_polling_paused(not is_open)
+            if refresh:
+                entry.async_create_background_task(
+                    hass,
+                    coordinator.async_refresh(),
+                    f"{coordinator.name} opening-hours refresh",
+                )
+
+    @callback
+    def schedule_changed(event: Event[EventStateChangedData]) -> None:
+        apply_schedule()
+
+    entry.async_on_unload(async_track_state_change_event(hass, schedule, schedule_changed))
+    apply_schedule()
 
 
 def machine_device_identifier(entry_id: str, machine_id: int) -> tuple[str, str]:
@@ -72,6 +122,33 @@ class EVaskeriCoordinator[DataT](DataUpdateCoordinator[DataT]):
             update_interval=timedelta(seconds=interval),
         )
         self.client = client
+        self._polling_interval = timedelta(seconds=interval)
+        self._polling_paused = False
+
+    @callback
+    def async_set_polling_paused(self, paused: bool) -> None:
+        """Suspend polling without changing data, availability or freshness."""
+        self._polling_paused = paused
+        self.update_interval = None if paused else self._polling_interval
+        if paused:
+            self._unschedule_refresh()
+
+    async def _async_refresh(
+        self,
+        log_failures: bool = True,
+        raise_on_auth_failed: bool = False,
+        scheduled: bool = False,
+        raise_on_entry_error: bool = False,
+    ) -> None:
+        # Gate inside the coordinator lock, including queued and manual refreshes.
+        if self._polling_paused:
+            return
+        await super()._async_refresh(
+            log_failures=log_failures,
+            raise_on_auth_failed=raise_on_auth_failed,
+            scheduled=scheduled,
+            raise_on_entry_error=raise_on_entry_error,
+        )
 
     async def _async_update_data(self) -> DataT:
         try:
@@ -103,6 +180,16 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
         self._cycle_listeners: list[CycleFinishedListener] = []
         self._started_at = dt_util.utcnow()
         self._last_not_busy: dict[int, datetime] = {}
+        self._reset_cycle_baseline = False
+        self._cycle_generation = 0
+
+    @callback
+    def async_set_polling_paused(self, paused: bool) -> None:
+        """Do not infer cycle completions across an unobserved closed period."""
+        super().async_set_polling_paused(paused)
+        if paused:
+            self._reset_cycle_baseline = True
+            self._cycle_generation += 1
 
     @callback
     def async_add_cycle_finished_listener(
@@ -118,10 +205,16 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
         return remove
 
     async def _async_fetch(self) -> dict[str, Any]:
+        generation = self._cycle_generation
         data = await self.client.async_get_machines()
-        if self.data is not None:
+        if self.data is not None and not self._reset_cycle_baseline:
             await self._async_announce_finished_cycles(self.data, data)
         now = dt_util.utcnow()
+        # A request started before closing cannot establish the reopening baseline.
+        if self._reset_cycle_baseline and generation == self._cycle_generation:
+            self._last_not_busy.clear()
+            self._started_at = now
+            self._reset_cycle_baseline = self._polling_paused
         for machine in data["machines"]:
             if machine["state"] != STATE_BUSY:
                 self._last_not_busy[machine["id"]] = now
@@ -154,6 +247,8 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
         device_registry = dr.async_get(self.hass)
         entry_id = self.config_entry.entry_id
         for machine in current["machines"]:
+            if self._reset_cycle_baseline:
+                return
             before = previous_by_id.get(machine["id"])
             if (
                 before is None
@@ -162,6 +257,8 @@ class MachinesCoordinator(EVaskeriCoordinator[dict[str, Any]]):
             ):
                 continue
             mine = await self._async_started_by_me(machine["id"])
+            if self._reset_cycle_baseline:
+                return
             device = device_registry.async_get_device_by_identifier(
                 machine_device_identifier(entry_id, machine["id"]), entry_id
             )

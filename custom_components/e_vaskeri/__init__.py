@@ -19,7 +19,7 @@ from homeassistant.loader import async_get_integration
 
 from .api import EVaskeriClient
 from .const import CARD_URL_PATH, DEFAULT_HUB_NAME, DOMAIN, MANUFACTURER
-from .coordinator import AccountCoordinator, MachinesCoordinator
+from .coordinator import AccountCoordinator, MachinesCoordinator, async_setup_opening_hours
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,6 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EVaskeriConfigEntry) -> 
     await machines.async_config_entry_first_refresh()
     await account.async_config_entry_first_refresh()
     entry.runtime_data = EVaskeriData(machines=machines, account=account)
+    async_setup_opening_hours(hass, entry, (machines, account))
 
     dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,

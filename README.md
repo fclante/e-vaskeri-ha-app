@@ -61,10 +61,11 @@ The notification blueprint is available at
 | Field | Description |
 | --- | --- |
 | API base URL | For example `http://e-vaskeri-api.default.svc:5000`. Validated against `/health` and `/api/v1/machines`. |
-| API key | Optional. Sent as `X-API-Key`; only needed when the API has `API_KEY` set. |
 
-The same API URL can only be added once. Use **Reconfigure** to change URL or key, and the
-re-authentication prompt if the API starts rejecting the key.
+No API key is required or sent. Keys saved by older integration versions are ignored and
+left unchanged.
+
+The same API URL can only be added once. Use **Reconfigure** to change the URL.
 
 **Options** (*Configure* on the integration):
 
@@ -306,13 +307,14 @@ Pure logic is in `card/src/logic/*.ts`, components in `card/src/components/*.ts`
 
 - **Cannot connect** – the URL must be reachable *from Home Assistant* (not from your browser).
   Check `curl <url>/health`.
-- **Invalid API key** – set the same value as the API's `API_KEY`, or leave the field empty if the
-  API is open.
+- **API access denied (401/403)** – check the API service and any reverse proxy. The API does
+  not require a key. After restoring access, submit the key-free retry prompt to reload.
 - **Entities unavailable** – the API or the upstream laundry site is failing; see the Home
   Assistant log for `e_vaskeri` and the API's `/ready` endpoint. Entities recover on the next poll.
 - **No dashboard card** – the integration logs a warning if
   `custom_components/e_vaskeri/www/e-vaskeri-card.js` is missing (the card is not built/copied).
-- **Download diagnostics** from the integration page; the API key and URL are redacted.
+- **Download diagnostics** from the integration page; the URL and any legacy saved API key
+  are redacted.
 
 ## Development
 
